@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SafeMarks 设置</title>
+    <link rel="stylesheet" href="../shared/styles.css" />
+    <link rel="stylesheet" href="./options.css" />
+  </head>
+  <body>
+    <main class="app-shell options-shell stack">
+      <section class="panel panel-pad stack">
+        <p class="eyebrow">SafeMarks</p>
+        <h1>保险库设置</h1>
+        <p class="subtitle">管理自动锁定、备份恢复和数据重置。明文导出仅在已解锁状态可用。</p>
+      </section>
+
+      <p id="options-message" class="message message-info" hidden></p>
+
+      <section class="status-grid">
+        <article class="panel panel-pad stack">
+          <div class="section-head">
+            <div class="stack">
+              <h2>初始化状态</h2>
+              <p id="vault-status" class="badge">检查中...</p>
+            </div>
+          </div>
+          <p class="helper-text">首次初始化请回到 popup 创建主密码，或直接导入加密备份。</p>
+        </article>
+
+        <article class="panel panel-pad stack">
+          <div class="section-head">
+            <div class="stack">
+              <h2>会话状态</h2>
+              <p id="session-status" class="badge">检查中...</p>
+            </div>
+          </div>
+          <div class="button-row">
+            <button id="lock-session" class="button-secondary" type="button">立即锁定</button>
+            <button id="open-popup" class="ghost-button" type="button">打开 popup</button>
+          </div>
+        </article>
+      </section>
+
+      <section id="settings-panel" class="panel panel-pad stack" hidden>
+        <div class="section-head">
+          <div class="stack">
+            <h2>自动锁定</h2>
+            <p class="helper-text">超时会清空 `chrome.storage.session` 中的密钥，并要求重新解锁。</p>
+          </div>
+        </div>
+        <div class="button-row">
+          <label class="label settings-label">
+            <span>超时时间</span>
+            <select id="options-autolock" class="select">
+              <option value="5">5 分钟</option>
+              <option value="15">15 分钟</option>
+              <option value="30">30 分钟</option>
+            </select>
+          </label>
+          <button id="save-settings" class="button" type="button">保存设置</button>
+        </div>
+      </section>
+
+      <section class="panel panel-pad stack">
+        <div class="section-head">
+          <div class="stack">
+            <h2>备份与恢复</h2>
+            <p class="helper-text">加密备份始终可用；明文导出需要当前会话已经解锁。</p>
+          </div>
+        </div>
+        <div class="button-row">
+          <button id="export-encrypted" class="button-secondary" type="button">导出加密 JSON</button>
+          <button id="export-plain" class="button-secondary" type="button">导出明文 JSON</button>
+          <button id="import-encrypted-trigger" class="button" type="button">导入加密 JSON</button>
+        </div>
+        <input id="import-encrypted-file" type="file" accept="application/json" hidden />
+      </section>
+
+      <section class="panel panel-pad stack">
+        <div class="section-head">
+          <div class="stack">
+            <h2>重置</h2>
+            <p class="helper-text">会删除本地所有密文和当前会话密钥，操作不可撤销。</p>
+          </div>
+        </div>
+        <button id="reset-data" class="button-danger" type="button">清空本地数据</button>
+      </section>
+    </main>
+
+    <script type="module" src="./options.js"></script>
+  </body>
+</html>

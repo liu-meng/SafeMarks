@@ -1,0 +1,16 @@
+body {
+  width: 392px;
+}
+
+.popup-shell {
+  min-height: 600px;
+}
+
+.hero-panel {
+  position: sticky;
+  top: 0;
+}
+
+#unlocked-screen {
+  padding-bottom: 4px;
+}

@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SafeMarks</title>
+    <link rel="stylesheet" href="../shared/styles.css" />
+    <link rel="stylesheet" href="./popup.css" />
+  </head>
+  <body>
+    <main class="app-shell popup-shell stack">
+      <section class="panel panel-pad stack hero-panel">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">SafeMarks</p>
+            <h1>零信任加密收藏夹</h1>
+          </div>
+          <button id="open-options" class="ghost-button" type="button">设置</button>
+        </div>
+        <p class="subtitle">收藏只以密文写入本地，主密码仅在当前浏览器会话内保持可用。</p>
+      </section>
+
+      <p id="global-message" class="message message-info" hidden></p>
+
+      <section id="setup-screen" class="panel panel-pad stack" hidden>
+        <div class="stack">
+          <h2>首次创建保险库</h2>
+          <p class="helper-text">创建后会立即加密一个空收藏库，之后所有收藏都只保存密文。</p>
+        </div>
+        <form id="setup-form" class="stack">
+          <label class="label">
+            <span>主密码</span>
+            <input id="setup-password" class="input" type="password" autocomplete="new-password" required />
+          </label>
+          <label class="label">
+            <span>确认主密码</span>
+            <input id="setup-confirm" class="input" type="password" autocomplete="new-password" required />
+          </label>
+          <label class="label">
+            <span>自动锁定</span>
+            <select id="setup-autolock" class="select">
+              <option value="5">5 分钟</option>
+              <option value="15" selected>15 分钟</option>
+              <option value="30">30 分钟</option>
+            </select>
+          </label>
+          <button class="button" type="submit">创建保险库</button>
+        </form>
+      </section>
+
+      <section id="locked-screen" class="panel panel-pad stack" hidden>
+        <div class="stack">
+          <h2>保险库已锁定</h2>
+          <p class="helper-text">输入主密码即可解锁；如果你有旧备份，也可以先导入加密 JSON。</p>
+        </div>
+        <form id="unlock-form" class="stack">
+          <label class="label">
+            <span>主密码</span>
+            <input id="unlock-password" class="input" type="password" autocomplete="current-password" required />
+          </label>
+          <button class="button" type="submit">解锁</button>
+        </form>
+        <div class="button-row">
+          <button id="locked-import-trigger" class="button-secondary" type="button">导入加密备份</button>
+          <button id="locked-open-options" class="ghost-button" type="button">打开设置页</button>
+        </div>
+        <input id="locked-import-file" type="file" accept="application/json" hidden />
+      </section>
+
+      <section id="unlocked-screen" class="stack" hidden>
+        <section class="panel panel-pad stack">
+          <div class="section-head">
+            <div class="stack">
+              <h2>当前保险库</h2>
+              <p id="session-badge" class="badge">已解锁</p>
+            </div>
+            <button id="lock-now" class="button-secondary" type="button">立即锁定</button>
+          </div>
+          <label class="label">
+            <span>搜索收藏</span>
+            <input id="search-input" class="input" type="search" placeholder="按标题或 URL 搜索" />
+          </label>
+        </section>
+
+        <section class="panel panel-pad stack">
+          <div class="section-head">
+            <div class="stack">
+              <h2>添加当前页</h2>
+              <p id="page-status" class="helper-text">正在读取当前页面信息...</p>
+            </div>
+          </div>
+          <form id="add-form" class="stack">
+            <label class="label">
+              <span>标题</span>
+              <input id="bookmark-title" class="input" type="text" required />
+            </label>
+            <label class="label">
+              <span>URL</span>
+              <input id="bookmark-url" class="input" type="url" required />
+            </label>
+            <button id="add-submit" class="button" type="submit">保存当前页</button>
+          </form>
+        </section>
+
+        <section class="panel panel-pad stack">
+          <div class="section-head">
+            <div class="stack">
+              <h2>收藏列表</h2>
+              <p id="bookmark-count" class="helper-text">0 条收藏</p>
+            </div>
+          </div>
+          <div id="empty-state" class="empty-state">还没有收藏，先把当前页加入保险库。</div>
+          <ul id="bookmark-list" class="bookmark-list"></ul>
+        </section>
+      </section>
+    </main>
+
+    <script type="module" src="./popup.js"></script>
+  </body>
+</html>

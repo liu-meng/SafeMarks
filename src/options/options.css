@@ -1,0 +1,10 @@
+.options-shell {
+  max-width: 960px;
+  margin: 0 auto;
+  padding-bottom: 42px;
+}
+
+.settings-label {
+  min-width: 220px;
+  flex: 1;
+}
