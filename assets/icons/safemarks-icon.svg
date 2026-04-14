@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">SafeMarks App Icon</title>
+  <desc id="desc">Modern flat icon combining a bookmark, shield, and lock.</desc>
+  <rect x="18" y="18" width="220" height="220" rx="52" fill="#eaf7f5" />
+  <rect x="34" y="34" width="188" height="188" rx="40" fill="#d7f0ec" />
+  <path
+    d="M88 50h80c11 0 20 9 20 20v122l-60-29-60 29V70c0-11 9-20 20-20z"
+    fill="#0b3b66"
+  />
+  <path
+    d="M128 76 162 91v32c0 24-13 42-34 55-21-13-34-31-34-55V91z"
+    fill="#10b981"
+  />
+  <path
+    d="M112 112v-6c0-8.8 7.2-16 16-16s16 7.2 16 16v6h-12v-6c0-2.2-1.8-4-4-4s-4 1.8-4 4v6z"
+    fill="#effffc"
+  />
+  <rect x="100" y="112" width="56" height="42" rx="14" fill="#ffffff" />
+  <path
+    d="M128 122c-5.5 0-10 4.5-10 10 0 4 2.4 7.5 5.8 9.1l-2.7 9.9h13.8l-2.7-9.9c3.4-1.6 5.8-5.1 5.8-9.1 0-5.5-4.5-10-10-10z"
+    fill="#0b3b66"
+  />
+</svg>
