@@ -4,7 +4,120 @@
   padding-bottom: 42px;
 }
 
+.options-hero {
+  display: grid;
+  gap: 22px;
+}
+
+.options-hero-copy {
+  min-width: 0;
+}
+
+.options-hero-with-unlock {
+  align-items: start;
+  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.95fr);
+}
+
+.import-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(260px, 0.9fr);
+  gap: 20px;
+  align-items: center;
+  background:
+    linear-gradient(135deg, rgba(18, 101, 109, 0.14), rgba(201, 145, 52, 0.12)),
+    var(--card);
+}
+
+.import-hero-copy {
+  gap: 10px;
+}
+
+.import-hero-actions {
+  align-items: stretch;
+  gap: 12px;
+}
+
+.import-hero-button {
+  min-height: 56px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.status-panel {
+  gap: 16px;
+}
+
+.status-summary {
+  display: grid;
+  gap: 12px;
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.status-label {
+  margin: 0;
+  font-weight: 600;
+}
+
+.unlock-panel {
+  gap: 16px;
+  padding: 18px;
+  border: 1px solid rgba(18, 101, 109, 0.2);
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.52);
+}
+
+.unlock-status-badge {
+  justify-self: start;
+}
+
+.unlock-form {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+}
+
+.unlock-password-input {
+  min-width: 0;
+}
+
+.unlock-actions {
+  justify-content: flex-start;
+}
+
 .settings-label {
   min-width: 220px;
   flex: 1;
+}
+
+@media (min-width: 720px) {
+  .status-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .options-hero-with-unlock,
+  .import-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .unlock-form {
+    grid-template-columns: 1fr;
+  }
+
+  .status-item {
+    align-items: flex-start;
+    flex-direction: column;
+  }
 }

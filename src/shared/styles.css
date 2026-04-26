@@ -26,6 +26,10 @@
   box-sizing: border-box;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 body {
   margin: 0;
   min-height: 100vh;
@@ -39,7 +43,8 @@ body {
 
 button,
 input,
-select {
+select,
+textarea {
   font: inherit;
 }
 
@@ -103,7 +108,8 @@ button {
 }
 
 .input,
-.select {
+.select,
+.textarea {
   width: 100%;
   padding: 11px 13px;
   border: 1px solid var(--line-strong);
@@ -113,7 +119,8 @@ button {
 }
 
 .input:focus,
-.select:focus {
+.select:focus,
+.textarea:focus {
   outline: 2px solid rgba(18, 101, 109, 0.18);
   outline-offset: 1px;
   border-color: var(--accent);
@@ -265,6 +272,7 @@ button {
 .status-grid {
   display: grid;
   gap: 14px;
+  align-items: stretch;
 }
 
 @media (min-width: 720px) {

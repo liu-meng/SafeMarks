@@ -1,5 +1,17 @@
 import { isSupportedBookmarkUrl } from "./validation.js";
 
+export function getPageFaviconUrl(rawUrl, preferredUrl = "") {
+  if (preferredUrl) {
+    return preferredUrl;
+  }
+
+  try {
+    return new URL("/favicon.ico", rawUrl).toString();
+  } catch {
+    return "";
+  }
+}
+
 export async function getCurrentPageCandidate() {
   if (!globalThis.chrome?.tabs?.query) {
     return {
@@ -30,6 +42,7 @@ export async function getCurrentPageCandidate() {
   return {
     supported: true,
     title: tab.title?.trim() || tab.url,
-    url: tab.url
+    url: tab.url,
+    faviconUrl: getPageFaviconUrl(tab.url, tab.favIconUrl)
   };
 }

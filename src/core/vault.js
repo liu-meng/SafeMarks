@@ -21,15 +21,27 @@ function createBookmarkId() {
   return `bm_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
 }
 
+function createVaultMeta(bookmarks) {
+  return {
+    bookmarkCount: bookmarks.length
+  };
+}
+
 export function createBookmark(payload) {
   const input = createBookmarkInput(payload);
+  const createdAt = Number(payload?.createdAt);
 
   return {
     id: createBookmarkId(),
     url: input.url,
     title: input.title,
+    note: input.note,
+    folderPath: input.folderPath,
     tags: [],
-    createdAt: Date.now()
+    createdAt:
+      Number.isFinite(createdAt) && createdAt > 0
+        ? createdAt
+        : Date.now()
   };
 }
 
@@ -42,6 +54,7 @@ export async function createVaultRecord(password, autoLockMinutes) {
     salt: bytesToBase64(saltBytes),
     auth: await encryptString(AUTH_SENTINEL, key),
     vault: await encryptJson([], key),
+    meta: createVaultMeta([]),
     settings: {
       autoLockMinutes: normalizeAutoLockMinutes(autoLockMinutes)
     }
@@ -88,9 +101,11 @@ export async function decryptBookmarksWithEncodedKey(record, encodedKey) {
 export async function encryptBookmarksWithEncodedKey(record, bookmarks, encodedKey) {
   const normalized = normalizeVaultRecord(record);
   const key = await importKey(encodedKey);
+  const normalizedBookmarks = normalizeBookmarkList(bookmarks);
 
   return normalizeVaultRecord({
     ...normalized,
-    vault: await encryptJson(normalizeBookmarkList(bookmarks), key)
+    vault: await encryptJson(normalizedBookmarks, key),
+    meta: createVaultMeta(normalizedBookmarks)
   });
 }

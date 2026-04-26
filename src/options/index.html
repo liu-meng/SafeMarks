@@ -9,64 +9,96 @@
   </head>
   <body>
     <main class="app-shell options-shell stack">
-      <section class="panel panel-pad stack">
-        <p class="eyebrow">SafeMarks</p>
-        <h1>保险库设置</h1>
-        <p class="subtitle">管理自动锁定、备份恢复和数据重置。明文导出仅在已解锁状态可用。</p>
+      <section id="options-hero" class="panel panel-pad options-hero">
+        <div class="stack options-hero-copy">
+          <p class="eyebrow">SafeMarks</p>
+          <h1>保险库设置</h1>
+          <p class="subtitle">管理自动锁定、浏览器导入、备份恢复和数据重置。明文导出仅在已解锁状态可用。</p>
+        </div>
+
+        <section id="unlock-panel" class="stack unlock-panel" hidden>
+          <p id="unlock-panel-badge" class="badge unlock-status-badge">会话已锁定</p>
+          <form id="unlock-form" class="stack unlock-form">
+            <input
+              id="unlock-password"
+              class="input unlock-password-input"
+              type="password"
+              autocomplete="current-password"
+              placeholder="主密码"
+              aria-label="主密码"
+              required
+            />
+            <div class="button-row unlock-actions">
+              <button class="button" type="submit">解锁并继续</button>
+            </div>
+          </form>
+        </section>
       </section>
 
       <p id="options-message" class="message message-info" hidden></p>
 
+      <section class="panel panel-pad import-hero">
+        <div class="stack import-hero-copy">
+          <p class="eyebrow">快速导入</p>
+          <h2>从浏览器导入</h2>
+          <p class="helper-text">把书签栏、其他书签等原生目录完整带入 SafeMarks，并保留原有目录和分类。</p>
+        </div>
+        <div class="stack import-hero-actions">
+          <button id="import-native-trigger" class="button import-hero-button" type="button">从浏览器导入</button>
+          <p id="import-native-hint" class="helper-text">检查当前保险库状态中...</p>
+        </div>
+      </section>
+
       <section class="status-grid">
-        <article class="panel panel-pad stack">
+        <article class="panel panel-pad stack status-panel">
           <div class="section-head">
             <div class="stack">
-              <h2>初始化状态</h2>
-              <p id="vault-status" class="badge">检查中...</p>
+              <h2>保险库状态</h2>
+              <p class="helper-text">首次初始化可先在 popup 创建主密码；如果已有加密备份，也可以先导入再在当前页解锁。</p>
             </div>
           </div>
-          <p class="helper-text">首次初始化请回到 popup 创建主密码，或直接导入加密备份。</p>
-        </article>
-
-        <article class="panel panel-pad stack">
-          <div class="section-head">
-            <div class="stack">
-              <h2>会话状态</h2>
+          <div class="status-summary">
+            <div class="status-item">
+              <p class="status-label">初始化状态</p>
+              <p id="vault-status" class="badge">检查中...</p>
+            </div>
+            <div class="status-item">
+              <p class="status-label">会话状态</p>
               <p id="session-status" class="badge">检查中...</p>
             </div>
           </div>
           <div class="button-row">
             <button id="lock-session" class="button-secondary" type="button">立即锁定</button>
-            <button id="open-popup" class="ghost-button" type="button">打开 popup</button>
+            <button id="focus-unlock" class="ghost-button" type="button" hidden>在当前页解锁</button>
           </div>
         </article>
-      </section>
 
-      <section id="settings-panel" class="panel panel-pad stack" hidden>
-        <div class="section-head">
-          <div class="stack">
-            <h2>自动锁定</h2>
-            <p class="helper-text">超时会清空 `chrome.storage.session` 中的密钥，并要求重新解锁。</p>
+        <section id="settings-panel" class="panel panel-pad stack" hidden>
+          <div class="section-head">
+            <div class="stack">
+              <h2>自动锁定</h2>
+              <p class="helper-text">超时会清空 `chrome.storage.session` 中的密钥，并要求重新解锁。</p>
+            </div>
           </div>
-        </div>
-        <div class="button-row">
-          <label class="label settings-label">
-            <span>超时时间</span>
-            <select id="options-autolock" class="select">
-              <option value="5">5 分钟</option>
-              <option value="15">15 分钟</option>
-              <option value="30">30 分钟</option>
-            </select>
-          </label>
-          <button id="save-settings" class="button" type="button">保存设置</button>
-        </div>
+          <div class="button-row">
+            <label class="label settings-label">
+              <span>超时时间</span>
+              <select id="options-autolock" class="select">
+                <option value="5">5 分钟</option>
+                <option value="15">15 分钟</option>
+                <option value="30">30 分钟</option>
+              </select>
+            </label>
+            <button id="save-settings" class="button" type="button">保存设置</button>
+          </div>
+        </section>
       </section>
 
       <section class="panel panel-pad stack">
         <div class="section-head">
           <div class="stack">
             <h2>备份与恢复</h2>
-            <p class="helper-text">加密备份始终可用；明文导出需要当前会话已经解锁。</p>
+            <p class="helper-text">加密备份始终可用；明文导出需要当前会话已经解锁。浏览器导入入口已移到上方。</p>
           </div>
         </div>
         <div class="button-row">

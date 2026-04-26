@@ -18,6 +18,35 @@ function assertString(value, message) {
   return value.trim();
 }
 
+function normalizeOptionalString(value) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function normalizeFolderPath(value) {
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  return value
+    .split(/[\\/]+/)
+    .map((segment) => segment.trim())
+    .filter(Boolean)
+    .join("/");
+}
+
+function normalizeBookmarkCount(value) {
+  if (value === undefined || value === null) {
+    return null;
+  }
+
+  const count = Number(value);
+  if (!Number.isInteger(count) || count < 0) {
+    throw new Error("Bookmark count is invalid.");
+  }
+
+  return count;
+}
+
 export function normalizeAutoLockMinutes(value) {
   const minutes = Number(value);
   return AUTO_LOCK_OPTIONS.includes(minutes)
@@ -49,6 +78,9 @@ export function normalizeVaultRecord(value) {
     vault: normalizeEncryptedBlob(value.vault, "Vault blob"),
     settings: {
       autoLockMinutes: normalizeAutoLockMinutes(value.settings?.autoLockMinutes)
+    },
+    meta: {
+      bookmarkCount: normalizeBookmarkCount(value.meta?.bookmarkCount)
     }
   };
 }
@@ -62,17 +94,21 @@ export function isSupportedBookmarkUrl(rawUrl) {
   }
 }
 
-export function createBookmarkInput({ url, title }) {
+export function createBookmarkInput({ url, title, note, folderPath }) {
   const normalizedUrl = assertString(url, "URL 不能为空。");
   if (!isSupportedBookmarkUrl(normalizedUrl)) {
     throw new Error("仅支持保存 http 或 https 页面。");
   }
 
   const normalizedTitle = (title ?? "").trim() || normalizedUrl;
+  const normalizedNote = normalizeOptionalString(note);
+  const normalizedFolderPath = normalizeFolderPath(folderPath);
 
   return {
     url: normalizedUrl,
-    title: normalizedTitle
+    title: normalizedTitle,
+    note: normalizedNote,
+    folderPath: normalizedFolderPath
   };
 }
 
@@ -91,6 +127,8 @@ export function normalizeBookmark(value) {
     id,
     url: input.url,
     title: input.title,
+    note: input.note,
+    folderPath: input.folderPath,
     tags: Array.isArray(value.tags)
       ? value.tags.filter((tag) => typeof tag === "string")
       : [],
