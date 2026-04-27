@@ -8,6 +8,7 @@ import {
   unlockVaultRecord,
   createVaultRecord
 } from "../src/core/vault.js";
+import { getBookmarkSearchResults } from "../src/core/bookmark-search.js";
 import { flattenNativeBookmarkTree } from "../src/core/native-bookmarks.js";
 import { hasVaultRecordData } from "../src/core/storage.js";
 import { normalizeVaultRecord } from "../src/core/validation.js";
@@ -352,4 +353,112 @@ test("native import ignores empty folder names but keeps descendants", () => {
   assert.equal(bookmarks.length, 1);
   assert.equal(bookmarks[0].folderPath, "Bookmarks Bar");
   assert.equal(bookmarks[0].createdAt, 1710000000222);
+});
+
+test("bookmark search matches note content", () => {
+  const results = getBookmarkSearchResults(
+    [
+      {
+        id: "bm_1",
+        title: "Docs",
+        url: "https://example.com/docs",
+        folderPath: "Work",
+        note: "Read this before deployment",
+        createdAt: 1710000000000
+      },
+      {
+        id: "bm_2",
+        title: "Home",
+        url: "https://example.com/home",
+        folderPath: "Personal",
+        note: "",
+        createdAt: 1710000000100
+      }
+    ],
+    "deployment"
+  );
+
+  assert.equal(results.length, 1);
+  assert.equal(results[0].id, "bm_1");
+});
+
+test("bookmark search returns all results when query is empty", () => {
+  const results = getBookmarkSearchResults(
+    [
+      {
+        id: "bm_1",
+        title: "Older",
+        url: "https://example.com/older",
+        folderPath: "",
+        note: "",
+        createdAt: 1710000000000
+      },
+      {
+        id: "bm_2",
+        title: "Newer",
+        url: "https://example.com/newer",
+        folderPath: "",
+        note: "",
+        createdAt: 1710000000100
+      }
+    ],
+    ""
+  );
+
+  assert.equal(results.length, 2);
+});
+
+test("bookmark search is case insensitive", () => {
+  const results = getBookmarkSearchResults(
+    [
+      {
+        id: "bm_1",
+        title: "RFC",
+        url: "https://example.com/spec",
+        folderPath: "Work/API",
+        note: "",
+        createdAt: 1710000000000
+      }
+    ],
+    "api"
+  );
+
+  assert.equal(results.length, 1);
+  assert.equal(results[0].id, "bm_1");
+});
+
+test("bookmark search keeps newest bookmarks first", () => {
+  const results = getBookmarkSearchResults(
+    [
+      {
+        id: "bm_1",
+        title: "Old",
+        url: "https://example.com/old",
+        folderPath: "",
+        note: "",
+        createdAt: 1710000000000
+      },
+      {
+        id: "bm_2",
+        title: "New",
+        url: "https://example.com/new",
+        folderPath: "",
+        note: "",
+        createdAt: 1710000000200
+      },
+      {
+        id: "bm_3",
+        title: "Mid",
+        url: "https://example.com/mid",
+        folderPath: "",
+        note: "",
+        createdAt: 1710000000100
+      }
+    ]
+  );
+
+  assert.deepEqual(
+    results.map((bookmark) => bookmark.id),
+    ["bm_2", "bm_3", "bm_1"]
+  );
 });

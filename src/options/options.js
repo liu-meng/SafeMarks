@@ -6,7 +6,6 @@ import {
   updateVaultSettings
 } from "../core/storage.js";
 import {
-  readSessionRecord,
   sessionLock,
   sessionSet,
   sessionStatus,
@@ -20,8 +19,11 @@ import {
 } from "../core/vault.js";
 import { normalizeVaultRecord } from "../core/validation.js";
 
+const MANAGER_PAGE_URL = chrome.runtime.getURL("src/manager/index.html");
+
 const elements = {
   optionsHero: document.querySelector("#options-hero"),
+  openManager: document.querySelector("#open-manager"),
   message: document.querySelector("#options-message"),
   vaultStatus: document.querySelector("#vault-status"),
   sessionStatus: document.querySelector("#session-status"),
@@ -38,6 +40,7 @@ const elements = {
   importFile: document.querySelector("#import-encrypted-file"),
   unlockPanel: document.querySelector("#unlock-panel"),
   unlockPanelBadge: document.querySelector("#unlock-panel-badge"),
+  unlockPanelCopy: document.querySelector("#unlock-panel-copy"),
   unlockForm: document.querySelector("#unlock-form"),
   unlockPassword: document.querySelector("#unlock-password"),
   resetData: document.querySelector("#reset-data")
@@ -45,7 +48,7 @@ const elements = {
 
 const state = {
   hasVault: false,
-  sessionStatus: "locked",
+  sessionState: "locked",
   pendingAction: null
 };
 
@@ -70,13 +73,17 @@ function setMessage(text, tone = "info") {
   elements.message.className = `message message-${tone}`;
 }
 
+function openManagerPage() {
+  chrome.tabs.create({ url: MANAGER_PAGE_URL });
+}
+
 function updateImportHint() {
   if (!state.hasVault) {
     elements.importNativeHint.textContent = "先创建保险库后，才能从浏览器导入收藏。";
     return;
   }
 
-  if (state.sessionStatus === "unlocked") {
+  if (state.sessionState === "unlocked") {
     elements.importNativeHint.textContent = "当前会话已解锁，导入时会保留浏览器原有目录和分类。";
     return;
   }
@@ -84,10 +91,11 @@ function updateImportHint() {
   elements.importNativeHint.textContent = "先在上方输入主密码解锁，再从浏览器导入。";
 }
 
-function setUnlockPanel(visible, copy = "输入主密码后即可继续在设置页导入、导出或管理保险库。") {
+function setUnlockPanel(visible, copy = "输入主密码后即可继续在设置页导入、导出或调整保险库设置。") {
   elements.unlockPanel.hidden = !visible;
   elements.optionsHero.classList.toggle("options-hero-with-unlock", visible);
   elements.focusUnlock.hidden = !visible;
+  elements.unlockPanelCopy.textContent = copy;
 
   if (!visible) {
     elements.unlockForm.reset();
@@ -124,8 +132,8 @@ function setVaultStatus(initialized) {
   }
 }
 
-function setSessionStatus(status, minutes = null) {
-  state.sessionStatus = status;
+function setSessionState(status, minutes = null) {
+  state.sessionState = status;
 
   if (status === "unlocked" && minutes) {
     elements.sessionStatus.textContent = `已解锁 · ${minutes} 分钟自动锁定`;
@@ -152,9 +160,23 @@ function setSessionStatus(status, minutes = null) {
       true,
       status === "expired"
         ? "当前会话已过期，请在这里重新输入主密码后继续操作。"
-        : "输入主密码后即可继续在设置页导入、导出或管理保险库。"
+        : "输入主密码后即可继续在设置页导入、导出或调整保险库设置。"
     );
   }
+}
+
+async function requireUnlockedSession(
+  copy = "输入主密码后即可继续在设置页导入、导出或调整保险库设置。"
+) {
+  const touched = await sessionTouch();
+  if (touched.status !== "unlocked" || !touched.session) {
+    setSessionState(touched.status);
+    focusUnlockPanel(copy);
+    throw new Error("保险库已锁定，请重新解锁。");
+  }
+
+  setSessionState("unlocked", touched.session.autoLockMinutes);
+  return touched.session;
 }
 
 function requireChromePermissions() {
@@ -180,16 +202,16 @@ async function refreshView(message = "") {
     elements.autoLock.value = String(record.settings.autoLockMinutes);
   }
 
-  const status = await sessionStatus();
+  const status = record ? await sessionStatus() : { status: "locked", session: null };
   if (status.status === "unlocked" && status.session) {
     const touched = await sessionTouch();
     if (touched.status === "unlocked" && touched.session) {
-      setSessionStatus("unlocked", touched.session.autoLockMinutes);
+      setSessionState("unlocked", touched.session.autoLockMinutes);
     } else {
-      setSessionStatus(touched.status);
+      setSessionState(touched.status);
     }
   } else {
-    setSessionStatus(status.status);
+    setSessionState(status.status);
   }
 
   if (message) {
@@ -238,9 +260,9 @@ async function runNativeImport(record, encodedKey) {
 async function handleSaveSettings() {
   try {
     const record = await updateVaultSettings(elements.autoLock.value);
-    const session = await readSessionRecord();
-    if (session) {
-      await sessionSet(session.encodedKey, record.settings.autoLockMinutes);
+    const status = await sessionStatus();
+    if (status.status === "unlocked" && status.session) {
+      await sessionSet(status.session.encodedKey, record.settings.autoLockMinutes);
     }
 
     await refreshView("自动锁定时间已更新。");
@@ -266,28 +288,17 @@ async function handleExportEncrypted() {
 async function handleExportPlain() {
   try {
     const record = await loadVaultRecord();
-    const session = await readSessionRecord();
-
-    if (!record || !session) {
-      focusUnlockPanel("导出明文前，先在当前页输入主密码解锁。");
-      setMessage("当前会话未解锁，先解锁后再导出明文。", "info");
-      return;
+    if (!record) {
+      throw new Error("当前没有可导出的保险库。");
     }
 
-    const status = await sessionStatus();
-    if (status.status !== "unlocked") {
-      focusUnlockPanel("导出明文前，先在当前页输入主密码解锁。");
-      setMessage("当前会话未解锁，先解锁后再导出明文。", "info");
-      return;
-    }
-
+    const session = await requireUnlockedSession("导出明文前，先在当前页输入主密码解锁。");
     const confirmed = window.confirm("明文导出会生成可直接阅读的 JSON，确认继续？");
     if (!confirmed) {
       return;
     }
 
     const bookmarks = await decryptBookmarksWithEncodedKey(record, session.encodedKey);
-    await sessionTouch();
     downloadJson(`safemarks-plain-${Date.now()}.json`, bookmarks);
     setMessage("已导出明文 JSON，请妥善保管。", "success");
   } catch (error) {
@@ -307,6 +318,7 @@ async function handleImport(event) {
     const record = normalizeVaultRecord(await readJsonFile(file));
     await saveVaultRecord(record);
     await sessionLock();
+    state.pendingAction = null;
     await refreshView();
     setMessage("加密备份已导入，可直接在当前页输入原密码解锁。", "success");
   } catch (error) {
@@ -324,11 +336,13 @@ async function handleImportNativeBookmarks() {
     const touched = await sessionTouch();
     if (touched.status !== "unlocked" || !touched.session) {
       state.pendingAction = "import-native";
+      setSessionState(touched.status);
       focusUnlockPanel("从浏览器导入前，先在当前页输入主密码解锁。解锁后会自动继续导入。");
       setMessage("从浏览器导入需要先解锁当前保险库。", "info");
       return;
     }
 
+    setSessionState("unlocked", touched.session.autoLockMinutes);
     state.pendingAction = null;
     await runNativeImport(record, touched.session.encodedKey);
   } catch (error) {
@@ -380,6 +394,7 @@ async function handleReset() {
   try {
     await clearVaultRecord();
     await sessionLock();
+    state.pendingAction = null;
     await refreshView();
     setMessage("本地数据已清空。", "success");
   } catch (error) {
@@ -387,6 +402,7 @@ async function handleReset() {
   }
 }
 
+elements.openManager.addEventListener("click", openManagerPage);
 elements.saveSettings.addEventListener("click", handleSaveSettings);
 elements.exportEncrypted.addEventListener("click", handleExportEncrypted);
 elements.exportPlain.addEventListener("click", handleExportPlain);
@@ -402,7 +418,7 @@ elements.lockSession.addEventListener("click", async () => {
   setMessage("当前会话已锁定。", "success");
 });
 elements.focusUnlock.addEventListener("click", () => {
-  focusUnlockPanel("输入主密码后即可继续在设置页导入、导出或管理保险库。");
+  focusUnlockPanel("输入主密码后即可继续在设置页导入、导出或调整保险库设置。");
 });
 window.addEventListener("focus", () => {
   refreshView().catch((error) => {

@@ -1,5 +1,6 @@
 import { hasStoredVaultRecord, loadVaultRecord, saveVaultRecord } from "../core/storage.js";
 import { sessionLock, sessionSet, sessionStatus, sessionTouch } from "../core/session.js";
+import { getBookmarkSearchResults } from "../core/bookmark-search.js";
 import { getCurrentPageCandidate, getPageFaviconUrl } from "../core/tabs.js";
 import {
   createBookmark,
@@ -8,6 +9,8 @@ import {
   encryptBookmarksWithEncodedKey,
   unlockVaultRecord
 } from "../core/vault.js";
+
+const MANAGER_PAGE_URL = chrome.runtime.getURL("src/manager/index.html");
 
 const elements = {
   message: document.querySelector("#global-message"),
@@ -22,6 +25,7 @@ const elements = {
   unlockForm: document.querySelector("#unlock-form"),
   unlockPassword: document.querySelector("#unlock-password"),
   lockedBookmarkCount: document.querySelector("#locked-bookmark-count"),
+  openManager: document.querySelector("#open-manager"),
   searchInput: document.querySelector("#search-input"),
   saveCurrentPage: document.querySelector("#save-current-page"),
   saveCurrentPageFaviconShell: document.querySelector("#save-current-page-favicon-shell"),
@@ -442,18 +446,8 @@ function resetUnlockedState() {
 }
 
 function renderBookmarks() {
-  const query = state.query.trim().toLowerCase();
-  const filtered = state.bookmarks.filter((bookmark) => {
-    if (!query) {
-      return true;
-    }
-
-    return (
-      bookmark.title.toLowerCase().includes(query) ||
-      bookmark.url.toLowerCase().includes(query) ||
-      bookmark.folderPath.toLowerCase().includes(query)
-    );
-  });
+  const query = state.query.trim();
+  const filtered = getBookmarkSearchResults(state.bookmarks, query);
 
   elements.bookmarkCount.textContent = query
     ? `${filtered.length} / ${state.bookmarks.length} 条收藏`
@@ -551,7 +545,7 @@ async function syncBookmarkCount(record, bookmarks) {
 async function showUnlocked(record, encodedKey, bookmarks, session) {
   state.record = await syncBookmarkCount(record, bookmarks);
   state.encodedKey = encodedKey;
-  state.bookmarks = [...bookmarks].sort((left, right) => right.createdAt - left.createdAt);
+  state.bookmarks = [...bookmarks];
   state.query = "";
   elements.searchInput.value = "";
   resetSaveForm();
@@ -791,6 +785,7 @@ async function handleManualLock() {
 elements.setupForm.addEventListener("submit", handleSetupSubmit);
 elements.unlockForm.addEventListener("submit", handleUnlockSubmit);
 elements.openSettings.addEventListener("click", () => chrome.runtime.openOptionsPage());
+elements.openManager.addEventListener("click", () => chrome.tabs.create({ url: MANAGER_PAGE_URL }));
 elements.saveCurrentPage.addEventListener("click", handleOpenSavePanel);
 elements.saveCurrentPageFavicon.addEventListener("error", () => setSaveTriggerFavicon(""));
 elements.closeSavePanel.addEventListener("click", resetSaveForm);

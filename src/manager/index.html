@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SafeMarks 收藏管理</title>
+    <link rel="stylesheet" href="../shared/styles.css" />
+    <link rel="stylesheet" href="./manager.css" />
+  </head>
+  <body>
+    <main class="app-shell manager-shell stack">
+      <section id="manager-hero" class="panel panel-pad manager-hero">
+        <div class="section-head manager-hero-head">
+          <div class="stack manager-hero-copy">
+            <p class="eyebrow">SafeMarks</p>
+            <h1>收藏管理</h1>
+            <p class="subtitle">集中查找、编辑和删除收藏；设置、导入导出与重置仍保留在设置页。</p>
+            <p id="session-status" class="badge">检查中...</p>
+          </div>
+          <div class="button-row manager-hero-actions">
+            <button id="open-settings" class="ghost-button" type="button">设置</button>
+            <button id="lock-session" class="button-secondary" type="button" hidden>锁定</button>
+          </div>
+        </div>
+
+        <section id="unlock-panel" class="stack unlock-panel" hidden>
+          <p id="unlock-panel-badge" class="badge unlock-status-badge">会话已锁定</p>
+          <p id="unlock-panel-copy" class="helper-text">输入主密码后即可继续查看和维护收藏。</p>
+          <form id="unlock-form" class="stack unlock-form">
+            <input
+              id="unlock-password"
+              class="input unlock-password-input"
+              type="password"
+              autocomplete="current-password"
+              placeholder="主密码"
+              aria-label="主密码"
+              required
+            />
+            <div class="button-row unlock-actions">
+              <button class="button" type="submit">解锁并查看</button>
+            </div>
+          </form>
+        </section>
+      </section>
+
+      <p id="manager-message" class="message message-info" hidden></p>
+
+      <section class="panel panel-pad stack manager-panel">
+        <div class="section-head manager-panel-head">
+          <div class="stack panel-tight">
+            <h2>维护收藏列表</h2>
+            <p id="manager-status" class="helper-text">检查当前保险库状态中...</p>
+          </div>
+          <p id="bookmark-count" class="badge">检查中...</p>
+        </div>
+
+        <label class="label">
+          <span>搜索收藏</span>
+          <input
+            id="search-input"
+            class="input"
+            type="search"
+            placeholder="按标题、URL、目录或备注搜索"
+            disabled
+          />
+        </label>
+
+        <div id="table-head" class="manager-table-head" hidden>
+          <span>收藏</span>
+          <span>目录</span>
+          <span>备注</span>
+          <span>保存时间</span>
+          <span class="manager-table-head-actions">操作</span>
+        </div>
+
+        <div id="empty-state" class="empty-state">加载中...</div>
+        <ul id="bookmark-list" class="bookmark-list manager-bookmark-list"></ul>
+      </section>
+    </main>
+
+    <script type="module" src="./manager.js"></script>
+  </body>
+</html>

@@ -1,0 +1,252 @@
+.manager-shell {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding-bottom: 42px;
+}
+
+.panel-tight {
+  gap: 6px;
+}
+
+.manager-hero {
+  display: grid;
+  gap: 18px;
+}
+
+.manager-hero-head {
+  align-items: flex-start;
+}
+
+.manager-hero-copy {
+  min-width: 0;
+}
+
+.manager-hero-actions {
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+
+.unlock-panel {
+  gap: 16px;
+  padding: 18px;
+  border: 1px solid rgba(18, 101, 109, 0.2);
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.52);
+}
+
+.unlock-status-badge {
+  justify-self: start;
+}
+
+.unlock-form {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+}
+
+.unlock-password-input {
+  min-width: 0;
+}
+
+.unlock-actions {
+  justify-content: flex-start;
+}
+
+.manager-panel {
+  gap: 14px;
+}
+
+.manager-panel-head {
+  align-items: flex-start;
+}
+
+.manager-table-head,
+.manager-row {
+  display: grid;
+  grid-template-columns: minmax(0, 2.4fr) minmax(0, 1.15fr) minmax(0, 1.55fr) 116px auto;
+  gap: 12px;
+  align-items: start;
+}
+
+.manager-table-head {
+  padding: 0 14px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.manager-table-head-actions {
+  text-align: right;
+}
+
+.manager-bookmark-list {
+  gap: 8px;
+}
+
+.manager-row {
+  padding: 12px 14px;
+}
+
+.manager-row-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.manager-row-title {
+  color: var(--text);
+  font-weight: 700;
+  line-height: 1.35;
+  text-decoration: none;
+  word-break: break-word;
+}
+
+.manager-row-title:hover {
+  color: var(--accent);
+}
+
+.manager-row-url,
+.manager-row-text,
+.manager-row-time {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--muted);
+  word-break: break-word;
+}
+
+.manager-row-url,
+.manager-row-note-text {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+}
+
+.manager-row-url {
+  -webkit-line-clamp: 1;
+}
+
+.manager-row-note-text {
+  -webkit-line-clamp: 2;
+}
+
+.manager-row-cell {
+  min-width: 0;
+}
+
+.manager-row-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.manager-action-button,
+.manager-delete-button {
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.manager-action-button {
+  color: var(--accent);
+  background: rgba(18, 101, 109, 0.08);
+  border-color: rgba(18, 101, 109, 0.16);
+}
+
+.manager-action-button:hover {
+  background: rgba(18, 101, 109, 0.14);
+  border-color: rgba(18, 101, 109, 0.24);
+}
+
+.manager-delete-button {
+  color: var(--warn);
+  background: rgba(143, 61, 50, 0.08);
+  border-color: rgba(143, 61, 50, 0.16);
+}
+
+.manager-delete-button:hover {
+  background: rgba(143, 61, 50, 0.14);
+  border-color: rgba(143, 61, 50, 0.24);
+}
+
+.manager-edit-item {
+  padding: 14px;
+}
+
+.manager-edit-form {
+  gap: 12px;
+}
+
+.manager-edit-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.manager-edit-note {
+  grid-column: 1 / -1;
+}
+
+.manager-edit-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.manager-edit-time {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+@media (max-width: 900px) {
+  .manager-table-head {
+    display: none;
+  }
+
+  .manager-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .manager-row-cell::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 3px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .manager-row-actions {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 720px) {
+  .manager-hero-head {
+    flex-direction: column;
+  }
+
+  .manager-hero-actions {
+    justify-content: flex-start;
+  }
+
+  .unlock-form,
+  .manager-edit-grid {
+    grid-template-columns: 1fr;
+  }
+}

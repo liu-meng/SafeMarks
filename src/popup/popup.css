@@ -16,6 +16,10 @@ body {
   align-items: center;
 }
 
+.popup-manage-button {
+  flex-shrink: 0;
+}
+
 .panel-tight {
   gap: 6px;
 }

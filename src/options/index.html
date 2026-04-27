@@ -13,11 +13,15 @@
         <div class="stack options-hero-copy">
           <p class="eyebrow">SafeMarks</p>
           <h1>保险库设置</h1>
-          <p class="subtitle">管理自动锁定、浏览器导入、备份恢复和数据重置。明文导出仅在已解锁状态可用。</p>
+          <p class="subtitle">管理自动锁定、浏览器导入、备份恢复和数据重置；收藏维护已单独移到管理页。</p>
+          <div class="button-row">
+            <button id="open-manager" class="ghost-button" type="button">打开收藏管理</button>
+          </div>
         </div>
 
         <section id="unlock-panel" class="stack unlock-panel" hidden>
           <p id="unlock-panel-badge" class="badge unlock-status-badge">会话已锁定</p>
+          <p id="unlock-panel-copy" class="helper-text">输入主密码后即可继续在设置页导入、导出或调整保险库设置。</p>
           <form id="unlock-form" class="stack unlock-form">
             <input
               id="unlock-password"
