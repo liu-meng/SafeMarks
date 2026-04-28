@@ -100,6 +100,37 @@
   flex: 1;
 }
 
+.shortcut-list {
+  display: grid;
+  gap: 12px;
+}
+
+.shortcut-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.shortcut-copy {
+  min-width: 0;
+  gap: 6px;
+}
+
+.shortcut-binding {
+  flex-shrink: 0;
+  font-weight: 600;
+}
+
+.shortcut-binding-empty {
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.62);
+}
+
 @media (min-width: 720px) {
   .status-summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -117,6 +148,11 @@
   }
 
   .status-item {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .shortcut-item {
     align-items: flex-start;
     flex-direction: column;
   }

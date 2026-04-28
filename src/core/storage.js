@@ -1,5 +1,14 @@
-import { STORAGE_KEYS } from "./constants.js";
-import { normalizeAutoLockMinutes, normalizeVaultRecord } from "./validation.js";
+import {
+  FOLDER_CATALOG_STORAGE_KEY,
+  PENDING_QUICK_CAPTURES_STORAGE_KEY,
+  STORAGE_KEYS
+} from "./constants.js";
+import {
+  normalizeAutoLockMinutes,
+  normalizeBookmarkList,
+  normalizeFolderCatalog,
+  normalizeVaultRecord
+} from "./validation.js";
 
 const VAULT_PRESENCE_KEYS = ["version", "salt", "auth", "vault"];
 
@@ -13,6 +22,14 @@ function requireChromeStorage() {
 
 function readStoredVaultData() {
   return requireChromeStorage().get(STORAGE_KEYS);
+}
+
+function readPendingQuickCaptureData() {
+  return requireChromeStorage().get(PENDING_QUICK_CAPTURES_STORAGE_KEY);
+}
+
+function readFolderCatalogData() {
+  return requireChromeStorage().get(FOLDER_CATALOG_STORAGE_KEY);
 }
 
 export function hasVaultRecordData(stored) {
@@ -62,5 +79,48 @@ export async function updateVaultSettings(autoLockMinutes) {
 }
 
 export async function clearVaultRecord() {
-  await requireChromeStorage().remove(STORAGE_KEYS);
+  await requireChromeStorage().remove([
+    FOLDER_CATALOG_STORAGE_KEY,
+    ...STORAGE_KEYS,
+    PENDING_QUICK_CAPTURES_STORAGE_KEY
+  ]);
+}
+
+export async function loadPendingQuickCaptures() {
+  const stored = await readPendingQuickCaptureData();
+  const pending = stored[PENDING_QUICK_CAPTURES_STORAGE_KEY];
+  if (!pending) {
+    return [];
+  }
+
+  return normalizeBookmarkList(pending);
+}
+
+export async function savePendingQuickCaptures(bookmarks) {
+  const normalized = normalizeBookmarkList(bookmarks);
+  await requireChromeStorage().set({
+    [PENDING_QUICK_CAPTURES_STORAGE_KEY]: normalized
+  });
+  return normalized;
+}
+
+export async function clearPendingQuickCaptures() {
+  await requireChromeStorage().remove(PENDING_QUICK_CAPTURES_STORAGE_KEY);
+}
+
+export async function loadFolderCatalog() {
+  const stored = await readFolderCatalogData();
+  return normalizeFolderCatalog(stored[FOLDER_CATALOG_STORAGE_KEY]);
+}
+
+export async function saveFolderCatalog(folderPaths) {
+  const normalized = normalizeFolderCatalog(folderPaths);
+  await requireChromeStorage().set({
+    [FOLDER_CATALOG_STORAGE_KEY]: normalized
+  });
+  return normalized;
+}
+
+export async function clearFolderCatalog() {
+  await requireChromeStorage().remove(FOLDER_CATALOG_STORAGE_KEY);
 }

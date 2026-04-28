@@ -1,5 +1,9 @@
 import { downloadJson, readJsonFile } from "../core/download.js";
+import { syncFolderCatalogFromBookmarks } from "../core/folder-catalog.js";
+import { flushPendingQuickCaptures } from "../core/quick-capture.js";
 import {
+  clearFolderCatalog,
+  clearPendingQuickCaptures,
   clearVaultRecord,
   loadVaultRecord,
   saveVaultRecord,
@@ -20,6 +24,29 @@ import {
 import { normalizeVaultRecord } from "../core/validation.js";
 
 const MANAGER_PAGE_URL = chrome.runtime.getURL("src/manager/index.html");
+const SHORTCUT_SETTINGS_URL = "chrome://extensions/shortcuts";
+const SHORTCUT_COMMANDS = [
+  {
+    name: "_execute_action",
+    title: "打开 SafeMarks",
+    description: "打开扩展 popup，继续解锁、搜索或保存当前页。"
+  },
+  {
+    name: "quick-capture",
+    title: "快速收藏当前页",
+    description: "打开快速收藏页，选择已有目录或新增目录后再保存。"
+  },
+  {
+    name: "open-manager",
+    title: "打开收藏管理",
+    description: "直接跳到独立管理页，集中编辑和删除收藏。"
+  },
+  {
+    name: "open-settings",
+    title: "打开设置页",
+    description: "直接打开 SafeMarks 设置。"
+  }
+];
 
 const elements = {
   optionsHero: document.querySelector("#options-hero"),
@@ -38,6 +65,8 @@ const elements = {
   importNative: document.querySelector("#import-native-trigger"),
   importNativeHint: document.querySelector("#import-native-hint"),
   importFile: document.querySelector("#import-encrypted-file"),
+  openShortcutSettings: document.querySelector("#open-shortcut-settings"),
+  shortcutList: document.querySelector("#shortcut-list"),
   unlockPanel: document.querySelector("#unlock-panel"),
   unlockPanelBadge: document.querySelector("#unlock-panel-badge"),
   unlockPanelCopy: document.querySelector("#unlock-panel-copy"),
@@ -75,6 +104,102 @@ function setMessage(text, tone = "info") {
 
 function openManagerPage() {
   chrome.tabs.create({ url: MANAGER_PAGE_URL });
+}
+
+function formatQuickCaptureImportMessage(importedCount) {
+  return `已自动导入 ${importedCount} 条快速收藏。`;
+}
+
+async function refreshQuickCaptureBadge() {
+  if (!globalThis.chrome?.runtime?.sendMessage) {
+    return;
+  }
+
+  await chrome.runtime.sendMessage({
+    type: "QUICK_CAPTURE_BADGE_REFRESH"
+  });
+}
+
+function formatShortcut(shortcut) {
+  return shortcut?.trim() || "未分配";
+}
+
+function renderShortcutList(commands = []) {
+  elements.shortcutList.replaceChildren();
+
+  const commandMap = new Map(commands.map((command) => [command.name, command]));
+
+  for (const shortcutCommand of SHORTCUT_COMMANDS) {
+    const currentCommand = commandMap.get(shortcutCommand.name);
+    const item = document.createElement("div");
+    item.className = "shortcut-item";
+
+    const copy = document.createElement("div");
+    copy.className = "stack shortcut-copy";
+
+    const title = document.createElement("strong");
+    title.textContent = shortcutCommand.title;
+
+    const description = document.createElement("p");
+    description.className = "helper-text";
+    description.textContent = shortcutCommand.description;
+
+    const binding = document.createElement("span");
+    binding.className = "badge shortcut-binding";
+    binding.textContent = formatShortcut(currentCommand?.shortcut);
+
+    if (!currentCommand?.shortcut) {
+      binding.classList.add("shortcut-binding-empty");
+    }
+
+    copy.append(title, description);
+    item.append(copy, binding);
+    elements.shortcutList.append(item);
+  }
+}
+
+function renderShortcutListUnavailable() {
+  elements.shortcutList.replaceChildren();
+
+  const item = document.createElement("div");
+  item.className = "shortcut-item";
+
+  const copy = document.createElement("div");
+  copy.className = "stack shortcut-copy";
+
+  const title = document.createElement("strong");
+  title.textContent = "当前环境不支持读取快捷键";
+
+  const description = document.createElement("p");
+  description.className = "helper-text";
+  description.textContent = "请手动打开 chrome://extensions/shortcuts 查看或修改 SafeMarks 的命令绑定。";
+
+  const binding = document.createElement("span");
+  binding.className = "badge shortcut-binding shortcut-binding-empty";
+  binding.textContent = "不可用";
+
+  copy.append(title, description);
+  item.append(copy, binding);
+  elements.shortcutList.append(item);
+}
+
+async function refreshShortcutList() {
+  if (!globalThis.chrome?.commands?.getAll) {
+    renderShortcutListUnavailable();
+    return;
+  }
+
+  const commands = await chrome.commands.getAll();
+  renderShortcutList(commands);
+}
+
+async function openShortcutSettingsPage() {
+  try {
+    await chrome.tabs.create({ url: SHORTCUT_SETTINGS_URL });
+    setMessage("已打开浏览器快捷键设置。修改后回到当前页即可查看最新绑定。", "success");
+  } catch {
+    setMessage(`请手动打开 ${SHORTCUT_SETTINGS_URL} 调整快捷键。`, "info");
+  }
 }
 
 function updateImportHint() {
@@ -196,7 +321,8 @@ function requireChromeBookmarks() {
 }
 
 async function refreshView(message = "") {
-  const record = await loadVaultRecord();
+  let importedCount = 0;
+  let record = await loadVaultRecord();
   setVaultStatus(Boolean(record));
   if (record) {
     elements.autoLock.value = String(record.settings.autoLockMinutes);
@@ -206,6 +332,19 @@ async function refreshView(message = "") {
   if (status.status === "unlocked" && status.session) {
     const touched = await sessionTouch();
     if (touched.status === "unlocked" && touched.session) {
+      const currentBookmarks = await decryptBookmarksWithEncodedKey(record, touched.session.encodedKey);
+      const flushed = await flushPendingQuickCaptures({
+        record,
+        encodedKey: touched.session.encodedKey,
+        currentBookmarks
+      });
+      record = flushed.record;
+      importedCount = flushed.importedCount;
+      await syncFolderCatalogFromBookmarks(flushed.bookmarks ?? currentBookmarks);
+      if (importedCount > 0) {
+        await refreshQuickCaptureBadge();
+      }
+
       setSessionState("unlocked", touched.session.autoLockMinutes);
     } else {
       setSessionState(touched.status);
@@ -215,7 +354,14 @@ async function refreshView(message = "") {
   }
 
   if (message) {
-    setMessage(message, "success");
+    setMessage(
+      importedCount > 0
+        ? `${message} ${formatQuickCaptureImportMessage(importedCount)}`
+        : message,
+      "success"
+    );
+  } else if (importedCount > 0) {
+    setMessage(formatQuickCaptureImportMessage(importedCount), "success");
   }
 }
 
@@ -250,6 +396,7 @@ async function runNativeImport(record, encodedKey) {
   );
 
   await saveVaultRecord(nextRecord);
+  await syncFolderCatalogFromBookmarks([...currentBookmarks, ...importedBookmarks]);
   await refreshView();
   setMessage(
     `已从浏览器导入 ${importedBookmarks.length} 条收藏，跳过 ${skippedCount} 条不支持的项目。`,
@@ -317,8 +464,11 @@ async function handleImport(event) {
   try {
     const record = normalizeVaultRecord(await readJsonFile(file));
     await saveVaultRecord(record);
+    await clearFolderCatalog();
+    await clearPendingQuickCaptures();
     await sessionLock();
     state.pendingAction = null;
+    await refreshQuickCaptureBadge();
     await refreshView();
     setMessage("加密备份已导入，可直接在当前页输入原密码解锁。", "success");
   } catch (error) {
@@ -365,8 +515,7 @@ async function handleUnlockSubmit(event) {
       unlocked.record.settings.autoLockMinutes
     ));
 
-    await refreshView();
-    setMessage("已在设置页解锁保险库。", "success");
+    await refreshView("已在设置页解锁保险库。");
 
     if (state.pendingAction === "import-native") {
       state.pendingAction = null;
@@ -395,6 +544,7 @@ async function handleReset() {
     await clearVaultRecord();
     await sessionLock();
     state.pendingAction = null;
+    await refreshQuickCaptureBadge();
     await refreshView();
     setMessage("本地数据已清空。", "success");
   } catch (error) {
@@ -409,6 +559,11 @@ elements.exportPlain.addEventListener("click", handleExportPlain);
 elements.importTrigger.addEventListener("click", () => elements.importFile.click());
 elements.importNative.addEventListener("click", handleImportNativeBookmarks);
 elements.importFile.addEventListener("change", handleImport);
+elements.openShortcutSettings.addEventListener("click", () => {
+  openShortcutSettingsPage().catch((error) => {
+    setMessage(error instanceof Error ? error.message : String(error), "error");
+  });
+});
 elements.unlockForm.addEventListener("submit", handleUnlockSubmit);
 elements.resetData.addEventListener("click", handleReset);
 elements.lockSession.addEventListener("click", async () => {
@@ -424,8 +579,14 @@ window.addEventListener("focus", () => {
   refreshView().catch((error) => {
     setMessage(error instanceof Error ? error.message : String(error), "error");
   });
+  refreshShortcutList().catch((error) => {
+    setMessage(error instanceof Error ? error.message : String(error), "error");
+  });
 });
 
 refreshView().catch((error) => {
+  setMessage(error instanceof Error ? error.message : String(error), "error");
+});
+refreshShortcutList().catch((error) => {
   setMessage(error instanceof Error ? error.message : String(error), "error");
 });

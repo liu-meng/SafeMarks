@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SafeMarks 快速收藏</title>
+    <link rel="stylesheet" href="../shared/styles.css" />
+    <link rel="stylesheet" href="./quick-capture.css" />
+  </head>
+  <body>
+    <main class="app-shell quick-capture-shell stack">
+      <section class="panel panel-pad quick-capture-hero stack">
+        <div class="section-head quick-capture-hero-head">
+          <div class="stack quick-capture-hero-copy">
+            <p class="eyebrow">SafeMarks</p>
+            <h1>快速收藏</h1>
+            <p id="capture-mode" class="badge">检查当前会话中...</p>
+          </div>
+          <button id="close-window" class="ghost-button" type="button">关闭</button>
+        </div>
+        <p id="capture-helper" class="helper-text">正在准备当前页面信息...</p>
+      </section>
+
+      <p id="capture-message" class="message message-info" hidden></p>
+
+      <section class="panel panel-pad stack">
+        <div class="quick-capture-preview">
+          <span id="preview-favicon-shell" class="quick-capture-favicon-shell" hidden>
+            <img
+              id="preview-favicon"
+              class="quick-capture-favicon"
+              alt=""
+              referrerpolicy="no-referrer"
+            />
+          </span>
+          <div class="stack quick-capture-preview-copy">
+            <strong id="preview-title">读取中...</strong>
+            <p id="preview-url" class="helper-text">读取中...</p>
+          </div>
+        </div>
+
+        <form id="quick-capture-form" class="stack">
+          <label class="label">
+            <span>标题</span>
+            <input id="capture-title" class="input" type="text" required />
+          </label>
+
+          <label class="label">
+            <span>URL</span>
+            <input id="capture-url" class="input" type="url" required />
+          </label>
+
+          <label class="label">
+            <span>已有目录</span>
+            <select id="existing-folder-select" class="select">
+              <option value="">未分类 / 手动输入新目录</option>
+            </select>
+          </label>
+
+          <label class="label">
+            <span>分类目录</span>
+            <input
+              id="capture-folder-path"
+              class="input"
+              type="text"
+              placeholder="可新增，例如 工作/项目A"
+            />
+          </label>
+
+          <p id="folder-helper" class="helper-text">正在读取可选目录...</p>
+
+          <div class="button-row">
+            <button id="capture-submit" class="button" type="submit">保存</button>
+            <button id="open-unlock" class="button-secondary" type="button">解锁</button>
+            <button id="open-settings" class="button-secondary" type="button">设置</button>
+          </div>
+        </form>
+      </section>
+    </main>
+
+    <script type="module" src="./quick-capture.js"></script>
+  </body>
+</html>

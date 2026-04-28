@@ -6,11 +6,27 @@ import {
   decryptBookmarksWithEncodedKey,
   encryptBookmarksWithEncodedKey,
   unlockVaultRecord,
+  createBookmark,
   createVaultRecord
 } from "../src/core/vault.js";
 import { getBookmarkSearchResults } from "../src/core/bookmark-search.js";
 import { flattenNativeBookmarkTree } from "../src/core/native-bookmarks.js";
-import { hasVaultRecordData } from "../src/core/storage.js";
+import {
+  hasVaultRecordData,
+  loadFolderCatalog,
+  loadPendingQuickCaptures,
+  savePendingQuickCaptures,
+  saveVaultRecord
+} from "../src/core/storage.js";
+import {
+  flushPendingQuickCaptures,
+  queueCurrentPageQuickCapture,
+  queueQuickCaptureBookmark
+} from "../src/core/quick-capture.js";
+import {
+  getFolderCatalogFromBookmarks,
+  syncFolderCatalogFromBookmarks
+} from "../src/core/folder-catalog.js";
 import { normalizeVaultRecord } from "../src/core/validation.js";
 
 test("base64 helpers round-trip bytes", () => {
@@ -461,4 +477,179 @@ test("bookmark search keeps newest bookmarks first", () => {
     results.map((bookmark) => bookmark.id),
     ["bm_2", "bm_3", "bm_1"]
   );
+});
+
+function createChromeStorageMock(initialLocal = {}, tabs = []) {
+  const localStore = { ...initialLocal };
+  const sessionStore = {};
+
+  function normalizeKeys(keys) {
+    return Array.isArray(keys) ? keys : [keys];
+  }
+
+  return {
+    chrome: {
+      storage: {
+        local: {
+          async get(keys) {
+            const result = {};
+            for (const key of normalizeKeys(keys)) {
+              result[key] = localStore[key];
+            }
+            return result;
+          },
+          async set(values) {
+            Object.assign(localStore, values);
+          },
+          async remove(keys) {
+            for (const key of normalizeKeys(keys)) {
+              delete localStore[key];
+            }
+          }
+        },
+        session: {
+          async get(key) {
+            return {
+              [key]: sessionStore[key]
+            };
+          },
+          async set(values) {
+            Object.assign(sessionStore, values);
+          },
+          async remove(key) {
+            delete sessionStore[key];
+          }
+        }
+      },
+      tabs: {
+        async query() {
+          return tabs;
+        }
+      }
+    }
+  };
+}
+
+test("quick capture can queue current page without unlock", async () => {
+  const originalChrome = globalThis.chrome;
+  const { chrome } = createChromeStorageMock({}, [
+    {
+      id: 1,
+      title: "Queued Page",
+      url: "https://example.com/queued"
+    }
+  ]);
+
+  globalThis.chrome = chrome;
+
+  try {
+    const result = await queueCurrentPageQuickCapture();
+    const pending = await loadPendingQuickCaptures();
+
+    assert.equal(result.pendingCount, 1);
+    assert.equal(pending.length, 1);
+    assert.equal(pending[0].title, "Queued Page");
+    assert.equal(pending[0].url, "https://example.com/queued");
+  } finally {
+    globalThis.chrome = originalChrome;
+  }
+});
+
+test("folder catalog deduplicates and sorts existing folder paths", () => {
+  const catalog = getFolderCatalogFromBookmarks([
+    createBookmark({
+      title: "A",
+      url: "https://example.com/a",
+      folderPath: "Work/API"
+    }),
+    createBookmark({
+      title: "B",
+      url: "https://example.com/b",
+      folderPath: " Work / API "
+    }),
+    createBookmark({
+      title: "C",
+      url: "https://example.com/c",
+      folderPath: "Personal"
+    }),
+    createBookmark({
+      title: "D",
+      url: "https://example.com/d"
+    })
+  ]);
+
+  assert.deepEqual(catalog, ["Personal", "Work/API"]);
+});
+
+test("queued quick capture adds its folder path into folder catalog", async () => {
+  const originalChrome = globalThis.chrome;
+  const { chrome } = createChromeStorageMock();
+
+  globalThis.chrome = chrome;
+
+  try {
+    await syncFolderCatalogFromBookmarks([
+      createBookmark({
+        title: "Existing",
+        url: "https://example.com/existing",
+        folderPath: "Work"
+      })
+    ]);
+    await queueQuickCaptureBookmark(createBookmark({
+      title: "Queued",
+      url: "https://example.com/queued",
+      folderPath: "Work/ProjectA"
+    }));
+
+    const catalog = await loadFolderCatalog();
+
+    assert.deepEqual(catalog, ["Work", "Work/ProjectA"]);
+  } finally {
+    globalThis.chrome = originalChrome;
+  }
+});
+
+test("pending quick captures are merged into the vault after unlock", async () => {
+  const originalChrome = globalThis.chrome;
+  const { chrome } = createChromeStorageMock();
+
+  globalThis.chrome = chrome;
+
+  try {
+    const created = await createVaultRecord("vault-pass", 15);
+    await saveVaultRecord(created.record);
+    await savePendingQuickCaptures([
+      createBookmark({
+        title: "Queued Page",
+        url: "https://example.com/queued",
+        folderPath: "Inbox",
+        createdAt: 1710000000002
+      })
+    ]);
+
+    const flushed = await flushPendingQuickCaptures({
+      record: created.record,
+      encodedKey: created.encodedKey,
+      currentBookmarks: [
+        createBookmark({
+          title: "Existing Page",
+          url: "https://example.com/existing",
+          folderPath: "Work",
+          createdAt: 1710000000001
+        })
+      ]
+    });
+
+    const catalog = await loadFolderCatalog();
+    const pending = await loadPendingQuickCaptures();
+
+    assert.equal(flushed.importedCount, 1);
+    assert.equal(flushed.bookmarks.length, 2);
+    assert.equal(flushed.bookmarks[0].title, "Queued Page");
+    assert.equal(flushed.bookmarks[1].title, "Existing Page");
+    assert.deepEqual(catalog, ["Inbox", "Work"]);
+    assert.deepEqual(pending, []);
+  } finally {
+    globalThis.chrome = originalChrome;
+  }
 });

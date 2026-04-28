@@ -1,4 +1,11 @@
-import { hasStoredVaultRecord, loadVaultRecord, saveVaultRecord } from "../core/storage.js";
+import { flushPendingQuickCaptures } from "../core/quick-capture.js";
+import { syncFolderCatalogFromBookmarks } from "../core/folder-catalog.js";
+import {
+  hasStoredVaultRecord,
+  loadPendingQuickCaptures,
+  loadVaultRecord,
+  saveVaultRecord
+} from "../core/storage.js";
 import { sessionLock, sessionSet, sessionStatus, sessionTouch } from "../core/session.js";
 import { getBookmarkSearchResults } from "../core/bookmark-search.js";
 import { getCurrentPageCandidate, getPageFaviconUrl } from "../core/tabs.js";
@@ -25,6 +32,7 @@ const elements = {
   unlockForm: document.querySelector("#unlock-form"),
   unlockPassword: document.querySelector("#unlock-password"),
   lockedBookmarkCount: document.querySelector("#locked-bookmark-count"),
+  lockedQuickCaptureStatus: document.querySelector("#locked-quick-capture-status"),
   openManager: document.querySelector("#open-manager"),
   searchInput: document.querySelector("#search-input"),
   saveCurrentPage: document.querySelector("#save-current-page"),
@@ -52,6 +60,8 @@ const state = {
   encodedKey: "",
   bookmarks: [],
   query: "",
+  pendingQuickCaptureCount: 0,
+  returnWindowId: null,
   lockTimer: null,
   savePanelOpen: false,
   saveMode: "create",
@@ -59,6 +69,18 @@ const state = {
   detailBookmarkId: null,
   collapsedFolders: new Set()
 };
+
+function parseReturnWindowId() {
+  const rawValue = new URLSearchParams(window.location.search).get("returnWindowId");
+  if (!rawValue) {
+    return null;
+  }
+
+  const windowId = Number(rawValue);
+  return Number.isInteger(windowId) && windowId >= 0
+    ? windowId
+    : null;
+}
 
 function getUnlockedSession(response) {
   if (response?.status !== "unlocked" || !response.session) {
@@ -95,6 +117,34 @@ function updateLockedBookmarkCount(record = state.record) {
       : `已保存 ${count} 条收藏`;
 }
 
+function setLockedQuickCaptureStatus() {
+  const count = state.pendingQuickCaptureCount;
+  elements.lockedQuickCaptureStatus.hidden = count === 0;
+  if (count === 0) {
+    elements.lockedQuickCaptureStatus.textContent = "";
+    return;
+  }
+
+  elements.lockedQuickCaptureStatus.textContent =
+    `有 ${count} 条快速收藏待写入，解锁后会自动导入保险库。`;
+}
+
+async function returnToQuickCaptureWindowIfNeeded() {
+  if (state.returnWindowId === null) {
+    return false;
+  }
+
+  try {
+    await chrome.windows.update(state.returnWindowId, {
+      focused: true
+    });
+    window.close();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function showScreen(screen) {
   elements.setupScreen.hidden = screen !== "setup";
   elements.lockedScreen.hidden = screen !== "locked";
@@ -102,6 +152,7 @@ function showScreen(screen) {
 
   if (screen === "locked") {
     updateLockedBookmarkCount();
+    setLockedQuickCaptureStatus();
   }
 }
 
@@ -423,6 +474,26 @@ function updateSessionBadge(expiresAt) {
   elements.sessionBadge.textContent = `已解锁 · 约 ${minutes} 分钟后自动锁定`;
 }
 
+function formatQuickCaptureImportMessage(importedCount) {
+  return `已导入 ${importedCount} 条快速收藏。`;
+}
+
+async function refreshQuickCaptureBadge() {
+  if (!globalThis.chrome?.runtime?.sendMessage) {
+    return;
+  }
+
+  await chrome.runtime.sendMessage({
+    type: "QUICK_CAPTURE_BADGE_REFRESH"
+  });
+}
+
+async function refreshPendingQuickCaptureStatus() {
+  const pending = await loadPendingQuickCaptures();
+  state.pendingQuickCaptureCount = pending.length;
+  setLockedQuickCaptureStatus();
+}
+
 function scheduleLocalLock(expiresAt) {
   clearLockTimer();
   updateSessionBadge(expiresAt);
@@ -474,6 +545,7 @@ async function persistBookmarks(nextBookmarks, successMessage) {
   );
 
   await saveVaultRecord(nextRecord);
+  await syncFolderCatalogFromBookmarks(nextBookmarks);
   state.record = nextRecord;
   state.bookmarks = nextBookmarks;
   if (state.detailBookmarkId && !nextBookmarks.some((bookmark) => bookmark.id === state.detailBookmarkId)) {
@@ -543,9 +615,20 @@ async function syncBookmarkCount(record, bookmarks) {
 }
 
 async function showUnlocked(record, encodedKey, bookmarks, session) {
-  state.record = await syncBookmarkCount(record, bookmarks);
+  const flushed = await flushPendingQuickCaptures({
+    record,
+    encodedKey,
+    currentBookmarks: bookmarks
+  });
+  if (flushed.importedCount > 0) {
+    await refreshQuickCaptureBadge();
+  }
+
+  state.pendingQuickCaptureCount = 0;
+  state.record = await syncBookmarkCount(flushed.record, flushed.bookmarks ?? bookmarks);
   state.encodedKey = encodedKey;
-  state.bookmarks = [...bookmarks];
+  state.bookmarks = [...(flushed.bookmarks ?? bookmarks)];
+  await syncFolderCatalogFromBookmarks(state.bookmarks);
   state.query = "";
   elements.searchInput.value = "";
   resetSaveForm();
@@ -558,12 +641,18 @@ async function showUnlocked(record, encodedKey, bookmarks, session) {
   } catch {
     setSaveTriggerFavicon("");
   }
+
+  return {
+    importedCount: flushed.importedCount
+  };
 }
 
 async function initialize() {
   let hasStoredVault = false;
 
   try {
+    state.returnWindowId = parseReturnWindowId();
+    await refreshPendingQuickCaptureStatus();
     hasStoredVault = await hasStoredVaultRecord();
     const record = hasStoredVault ? await loadVaultRecord() : null;
     state.record = record;
@@ -579,7 +668,14 @@ async function initialize() {
     if (status.status === "unlocked" && status.session) {
       const touched = await touchSessionState();
       const bookmarks = await decryptBookmarksWithEncodedKey(record, touched.encodedKey);
-      await showUnlocked(record, touched.encodedKey, bookmarks, touched);
+      const { importedCount } = await showUnlocked(record, touched.encodedKey, bookmarks, touched);
+      if (state.returnWindowId !== null) {
+        await returnToQuickCaptureWindowIfNeeded();
+        return;
+      }
+      if (importedCount > 0) {
+        setMessage(formatQuickCaptureImportMessage(importedCount), "success");
+      }
       return;
     }
 
@@ -644,14 +740,23 @@ async function handleUnlockSubmit(event) {
       unlocked.record.settings.autoLockMinutes
     ));
 
-    await showUnlocked(
+    const { importedCount } = await showUnlocked(
       unlocked.record,
       unlocked.encodedKey,
       unlocked.bookmarks,
       session
     );
     elements.unlockForm.reset();
-    setMessage("已解锁保险库。", "success");
+    if (state.returnWindowId !== null) {
+      await returnToQuickCaptureWindowIfNeeded();
+      return;
+    }
+    setMessage(
+      importedCount > 0
+        ? `已解锁保险库，并${formatQuickCaptureImportMessage(importedCount)}`
+        : "已解锁保险库。",
+      "success"
+    );
   } catch (error) {
     setMessage(
       error instanceof Error ? error.message : "解锁失败，请确认主密码。",
@@ -795,6 +900,7 @@ elements.lockNow.addEventListener("click", handleManualLock);
 
 window.addEventListener("beforeunload", resetUnlockedState);
 window.addEventListener("focus", () => {
+  refreshPendingQuickCaptureStatus().catch(() => {});
   if (state.encodedKey) {
     touchSessionState().catch(() => {});
   }

@@ -122,6 +122,25 @@
         </div>
         <button id="reset-data" class="button-danger" type="button">清空本地数据</button>
       </section>
+
+      <section class="panel panel-pad stack">
+        <div class="section-head">
+          <div class="stack">
+            <h2>快捷键</h2>
+            <p class="helper-text">SafeMarks 已支持浏览器级快捷键。快速收藏会先弹出专用页面，允许选择已有目录或新增目录；如果当前锁定，提交后会先未加密暂存在本地，等下次解锁后自动写入保险库。</p>
+          </div>
+          <button id="open-shortcut-settings" class="ghost-button" type="button">打开快捷键设置</button>
+        </div>
+        <div id="shortcut-list" class="shortcut-list" aria-live="polite">
+          <div class="shortcut-item">
+            <div class="stack panel-tight">
+              <strong>正在读取当前快捷键...</strong>
+              <p class="helper-text">如果浏览器尚未分配快捷键，这里会显示“未分配”。</p>
+            </div>
+            <span class="badge">检查中...</span>
+          </div>
+        </div>
+      </section>
     </main>
 
     <script type="module" src="./options.js"></script>

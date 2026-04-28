@@ -22,7 +22,7 @@ function normalizeOptionalString(value) {
   return typeof value === "string" ? value.trim() : "";
 }
 
-function normalizeFolderPath(value) {
+export function normalizeFolderPath(value) {
   if (typeof value !== "string") {
     return "";
   }
@@ -32,6 +32,22 @@ function normalizeFolderPath(value) {
     .map((segment) => segment.trim())
     .filter(Boolean)
     .join("/");
+}
+
+export function normalizeFolderCatalog(value) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const uniquePaths = new Set();
+  for (const path of value) {
+    const normalizedPath = normalizeFolderPath(path);
+    if (normalizedPath) {
+      uniquePaths.add(normalizedPath);
+    }
+  }
+
+  return [...uniquePaths].sort((left, right) => left.localeCompare(right, "zh-CN"));
 }
 
 function normalizeBookmarkCount(value) {

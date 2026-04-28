@@ -1,4 +1,6 @@
 import { getBookmarkSearchResults } from "../core/bookmark-search.js";
+import { syncFolderCatalogFromBookmarks } from "../core/folder-catalog.js";
+import { flushPendingQuickCaptures } from "../core/quick-capture.js";
 import { loadVaultRecord, saveVaultRecord } from "../core/storage.js";
 import {
   sessionLock,
@@ -41,6 +43,20 @@ const state = {
   query: "",
   editingBookmarkId: null
 };
+
+function formatQuickCaptureImportMessage(importedCount) {
+  return `已自动导入 ${importedCount} 条快速收藏。`;
+}
+
+async function refreshQuickCaptureBadge() {
+  if (!globalThis.chrome?.runtime?.sendMessage) {
+    return;
+  }
+
+  await chrome.runtime.sendMessage({
+    type: "QUICK_CAPTURE_BADGE_REFRESH"
+  });
+}
 
 function getUnlockedSession(response) {
   if (response?.status !== "unlocked" || !response.session) {
@@ -381,7 +397,8 @@ function renderView() {
 }
 
 async function refreshView(message = "") {
-  const record = await loadVaultRecord();
+  let importedCount = 0;
+  let record = await loadVaultRecord();
   state.record = record;
   state.hasVault = Boolean(record);
 
@@ -400,7 +417,21 @@ async function refreshView(message = "") {
     const touched = await sessionTouch();
     if (touched.status === "unlocked" && touched.session) {
       state.encodedKey = touched.session.encodedKey;
-      state.bookmarks = await decryptBookmarksWithEncodedKey(record, touched.session.encodedKey);
+      const flushed = await flushPendingQuickCaptures({
+        record,
+        encodedKey: touched.session.encodedKey
+      });
+      record = flushed.record;
+      state.record = record;
+      importedCount = flushed.importedCount;
+      state.bookmarks = flushed.bookmarks ?? await decryptBookmarksWithEncodedKey(
+        record,
+        touched.session.encodedKey
+      );
+      await syncFolderCatalogFromBookmarks(state.bookmarks);
+      if (importedCount > 0) {
+        await refreshQuickCaptureBadge();
+      }
       setSessionState("unlocked", touched.session.autoLockMinutes);
     } else {
       clearUnlockedState();
@@ -414,7 +445,14 @@ async function refreshView(message = "") {
   renderView();
 
   if (message) {
-    setMessage(message, "success");
+    setMessage(
+      importedCount > 0
+        ? `${message} ${formatQuickCaptureImportMessage(importedCount)}`
+        : message,
+      "success"
+    );
+  } else if (importedCount > 0) {
+    setMessage(formatQuickCaptureImportMessage(importedCount), "success");
   }
 }
 
@@ -427,6 +465,7 @@ async function persistBookmarks(nextBookmarks, successMessage) {
 
   const nextRecord = await encryptBookmarksWithEncodedKey(record, nextBookmarks, session.encodedKey);
   await saveVaultRecord(nextRecord);
+  await syncFolderCatalogFromBookmarks(nextBookmarks);
   state.record = nextRecord;
   state.bookmarks = nextBookmarks;
   state.editingBookmarkId = null;

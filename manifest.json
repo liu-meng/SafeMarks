@@ -31,5 +31,34 @@
       "128": "assets/icons/safemarks-128.png"
     }
   },
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+Y",
+        "mac": "Command+Shift+Y"
+      }
+    },
+    "quick-capture": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+K",
+        "mac": "Command+Shift+K"
+      },
+      "description": "打开快速收藏页（可选择已有目录或新增目录）"
+    },
+    "open-manager": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+M",
+        "mac": "Command+Shift+M"
+      },
+      "description": "打开 SafeMarks 收藏管理"
+    },
+    "open-settings": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+Comma",
+        "mac": "Command+Shift+Comma"
+      },
+      "description": "打开 SafeMarks 设置"
+    }
+  },
   "options_page": "src/options/index.html"
 }
