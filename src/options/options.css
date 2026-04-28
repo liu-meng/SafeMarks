@@ -100,6 +100,18 @@
   flex: 1;
 }
 
+.language-settings-panel {
+  gap: 16px;
+}
+
+.reset-confirm-panel {
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid rgba(143, 61, 50, 0.18);
+  border-radius: var(--radius-md);
+  background: rgba(143, 61, 50, 0.06);
+}
+
 .shortcut-list {
   display: grid;
   gap: 12px;

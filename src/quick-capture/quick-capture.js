@@ -8,6 +8,10 @@ import {
   saveQuickCaptureBookmark
 } from "../core/quick-capture.js";
 import { syncFolderCatalogFromBookmarks } from "../core/folder-catalog.js";
+import { initializeI18n, localizeDocument, t } from "../shared/i18n.js";
+
+await initializeI18n();
+localizeDocument();
 
 const elements = {
   mode: document.querySelector("#capture-mode"),
@@ -54,24 +58,24 @@ function setMode(status) {
   state.sessionState = status;
 
   if (status === "unlocked") {
-    elements.mode.textContent = "当前已解锁";
-    elements.helper.textContent = "保存后会直接写入保险库，并刷新可选目录。";
-    elements.submit.textContent = "保存";
+    elements.mode.textContent = t("当前已解锁");
+    elements.helper.textContent = t("保存后会直接写入保险库，并刷新可选目录。");
+    elements.submit.textContent = t("保存");
     elements.openUnlock.hidden = true;
     return;
   }
 
   if (status === "expired") {
-    elements.mode.textContent = "当前会话已过期";
-    elements.helper.textContent = "保存后会先未加密暂存在本地，等下次解锁后自动导入保险库。";
-    elements.submit.textContent = "保存";
+    elements.mode.textContent = t("当前会话已过期");
+    elements.helper.textContent = t("保存后会先未加密暂存在本地，等下次解锁后自动导入保险库。");
+    elements.submit.textContent = t("保存");
     elements.openUnlock.hidden = false;
     return;
   }
 
-  elements.mode.textContent = "当前已锁定";
-  elements.helper.textContent = "保存后会先未加密暂存在本地，等下次解锁后自动导入保险库。";
-  elements.submit.textContent = "保存";
+  elements.mode.textContent = t("当前已锁定");
+  elements.helper.textContent = t("保存后会先未加密暂存在本地，等下次解锁后自动导入保险库。");
+  elements.submit.textContent = t("保存");
   elements.openUnlock.hidden = false;
 }
 
@@ -94,14 +98,14 @@ function renderFolderOptions() {
   defaultOption.value = "";
   defaultOption.textContent =
     state.sessionState === "unlocked"
-      ? "默认"
-      : "默认（解锁后显示更多）";
+      ? t("默认")
+      : t("默认（解锁后显示更多）");
   elements.existingFolderSelect.append(defaultOption);
 
   if (state.sessionState !== "unlocked") {
     elements.existingFolderSelect.value = "";
     elements.existingFolderSelect.disabled = true;
-    elements.folderHelper.textContent = "当前未解锁，已有目录暂不可选；可直接输入新目录，或先解锁后选择更多已有目录。";
+    elements.folderHelper.textContent = t("当前未解锁，已有目录暂不可选；可直接输入新目录，或先解锁后选择更多已有目录。");
     return;
   }
 
@@ -119,13 +123,13 @@ function renderFolderOptions() {
   }
 
   if (state.folderCatalog.length > 0) {
-    elements.folderHelper.textContent = "可先选择已有目录，也可以直接在下方输入新目录。";
+    elements.folderHelper.textContent = t("可先选择已有目录，也可以直接在下方输入新目录。");
     elements.existingFolderSelect.disabled = false;
     return;
   }
 
   elements.folderHelper.textContent =
-    "当前没有可选目录。可直接在“分类目录”中输入一个新目录，保存后会加入目录列表。";
+    t("当前没有可选目录。可直接在“分类目录”中输入一个新目录，保存后会加入目录列表。");
   elements.existingFolderSelect.disabled = false;
 }
 
@@ -136,7 +140,7 @@ function parseDraftFromQuery() {
   const faviconUrl = params.get("faviconUrl")?.trim() ?? "";
 
   if (!title || !url) {
-    throw new Error("当前没有可快速收藏的页面信息，请重新触发快捷键。");
+    throw new Error(t("当前没有可快速收藏的页面信息，请重新触发快捷键。"));
   }
 
   return { title, url, faviconUrl };
@@ -171,7 +175,9 @@ async function refreshFolderCatalog() {
     });
     if (flushed.importedCount > 0) {
       await refreshQuickCaptureBadge();
-      setMessage(`已自动导入 ${flushed.importedCount} 条待写入快速收藏。`, "success");
+      setMessage(t("已自动导入 {count} 条待写入快速收藏。", {
+        count: flushed.importedCount
+      }), "success");
     }
 
     state.folderCatalog = await syncFolderCatalogFromBookmarks(flushed.bookmarks ?? currentBookmarks);
@@ -202,7 +208,7 @@ async function handleSubmit(event) {
   try {
     const record = await loadVaultRecord();
     if (!record) {
-      throw new Error("当前保险库未初始化，请先在 popup 创建主密码。");
+      throw new Error(t("当前保险库未初始化，请先在 popup 创建主密码。"));
     }
 
     elements.submit.disabled = true;
@@ -222,7 +228,7 @@ async function handleSubmit(event) {
       });
       await refreshQuickCaptureBadge();
       setMode("unlocked");
-      setMessage("已直接写入保险库。", "success");
+      setMessage(t("已直接写入保险库。"), "success");
       window.setTimeout(() => {
         window.close();
       }, 420);
@@ -233,7 +239,9 @@ async function handleSubmit(event) {
     await refreshQuickCaptureBadge();
     setMode(touched.status);
     setMessage(
-      `已暂存快速收藏，解锁后自动导入。当前待写入 ${queued.pendingCount} 条。`,
+      t("已暂存快速收藏，解锁后自动导入。当前待写入 {count} 条。", {
+        count: queued.pendingCount
+      }),
       "success"
     );
     state.folderCatalog = await loadFolderCatalog();
@@ -256,8 +264,8 @@ async function initialize() {
       element.disabled = true;
     });
     setMessage(error instanceof Error ? error.message : String(error), "error");
-    elements.helper.textContent = "请关闭当前窗口后重新触发快捷键。";
-    elements.folderHelper.textContent = "目录列表不可用。";
+    elements.helper.textContent = t("请关闭当前窗口后重新触发快捷键。");
+    elements.folderHelper.textContent = t("目录列表不可用。");
   }
 }
 

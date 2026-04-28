@@ -1,0 +1,17 @@
+{
+  "actionDefaultTitle": {
+    "message": "SafeMarks"
+  },
+  "extensionDescription": {
+    "message": "Zero-trust local encrypted bookmarks extension."
+  },
+  "commandQuickCaptureDescription": {
+    "message": "Open quick capture (choose an existing folder or create a new one)"
+  },
+  "commandOpenManagerDescription": {
+    "message": "Open the SafeMarks bookmark manager"
+  },
+  "commandOpenSettingsDescription": {
+    "message": "Open SafeMarks settings"
+  }
+}

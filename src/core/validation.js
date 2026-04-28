@@ -3,6 +3,7 @@ import {
   DEFAULT_AUTO_LOCK_MINUTES,
   VERSION
 } from "./constants.js";
+import { getLocaleTag, t } from "../shared/i18n.js";
 
 function assertObject(value, message) {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -47,7 +48,7 @@ export function normalizeFolderCatalog(value) {
     }
   }
 
-  return [...uniquePaths].sort((left, right) => left.localeCompare(right, "zh-CN"));
+  return [...uniquePaths].sort((left, right) => left.localeCompare(right, getLocaleTag()));
 }
 
 function normalizeBookmarkCount(value) {
@@ -111,9 +112,9 @@ export function isSupportedBookmarkUrl(rawUrl) {
 }
 
 export function createBookmarkInput({ url, title, note, folderPath }) {
-  const normalizedUrl = assertString(url, "URL 不能为空。");
+  const normalizedUrl = assertString(url, t("URL 不能为空。"));
   if (!isSupportedBookmarkUrl(normalizedUrl)) {
-    throw new Error("仅支持保存 http 或 https 页面。");
+    throw new Error(t("仅支持保存 http 或 https 页面。"));
   }
 
   const normalizedTitle = (title ?? "").trim() || normalizedUrl;

@@ -28,6 +28,10 @@ import {
   syncFolderCatalogFromBookmarks
 } from "../src/core/folder-catalog.js";
 import { normalizeVaultRecord } from "../src/core/validation.js";
+import {
+  LANGUAGE_PREFERENCES,
+  resolveLocaleFromPreference
+} from "../src/shared/i18n.js";
 
 test("base64 helpers round-trip bytes", () => {
   const source = new Uint8Array([0, 1, 2, 253, 254, 255]);
@@ -52,7 +56,18 @@ test("unlock rejects wrong password", async () => {
 
   await assert.rejects(
     () => unlockVaultRecord(created.record, "wrong-password"),
-    /主密码不正确/
+    /主密码不正确|Incorrect master password/
+  );
+});
+
+test("auto language falls back to English when browser locale is unsupported", () => {
+  assert.equal(
+    resolveLocaleFromPreference(LANGUAGE_PREFERENCES.AUTO, "fr-FR"),
+    LANGUAGE_PREFERENCES.ENGLISH
+  );
+  assert.equal(
+    resolveLocaleFromPreference(LANGUAGE_PREFERENCES.AUTO, "zh-TW"),
+    LANGUAGE_PREFERENCES.CHINESE
   );
 });
 

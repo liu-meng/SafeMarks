@@ -1,8 +1,9 @@
 {
   "manifest_version": 3,
   "name": "SafeMarks",
-  "description": "零信任本地加密收藏夹扩展。",
+  "description": "__MSG_extensionDescription__",
   "version": "1.0.0",
+  "default_locale": "en",
   "permissions": [
     "storage",
     "alarms",
@@ -23,7 +24,7 @@
   },
   "action": {
     "default_popup": "src/popup/index.html",
-    "default_title": "SafeMarks",
+    "default_title": "__MSG_actionDefaultTitle__",
     "default_icon": {
       "16": "assets/icons/safemarks-16.png",
       "32": "assets/icons/safemarks-32.png",
@@ -43,21 +44,21 @@
         "default": "Ctrl+Shift+K",
         "mac": "Command+Shift+K"
       },
-      "description": "打开快速收藏页（可选择已有目录或新增目录）"
+      "description": "__MSG_commandQuickCaptureDescription__"
     },
     "open-manager": {
       "suggested_key": {
         "default": "Ctrl+Shift+M",
         "mac": "Command+Shift+M"
       },
-      "description": "打开 SafeMarks 收藏管理"
+      "description": "__MSG_commandOpenManagerDescription__"
     },
     "open-settings": {
       "suggested_key": {
         "default": "Ctrl+Shift+Comma",
         "mac": "Command+Shift+Comma"
       },
-      "description": "打开 SafeMarks 设置"
+      "description": "__MSG_commandOpenSettingsDescription__"
     }
   },
   "options_page": "src/options/index.html"

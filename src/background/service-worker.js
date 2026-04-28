@@ -13,6 +13,9 @@ import {
   hasStoredVaultRecord,
   loadPendingQuickCaptures
 } from "../core/storage.js";
+import { initializeI18n, t } from "../shared/i18n.js";
+
+await initializeI18n();
 
 const COMMANDS = {
   QUICK_CAPTURE: "quick-capture",
@@ -131,7 +134,7 @@ async function refreshActionBadge() {
   });
   await chrome.action.setTitle({
     title: count > 0
-      ? `SafeMarks（有 ${count} 条快速收藏待写入，解锁后自动导入）`
+      ? t("SafeMarks（有 {count} 条快速收藏待写入，解锁后自动导入）", { count })
       : "SafeMarks"
   });
 }
@@ -159,7 +162,7 @@ async function flashActionStatus(status, title) {
 async function handleQuickCaptureCommand() {
   const hasVault = await hasStoredVaultRecord();
   if (!hasVault) {
-    await flashActionStatus("error", "SafeMarks 尚未初始化，无法快速收藏。");
+    await flashActionStatus("error", t("SafeMarks 尚未初始化，无法快速收藏。"));
     return;
   }
 

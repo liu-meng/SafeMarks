@@ -16,6 +16,7 @@ import {
   normalizeVaultRecord
 } from "./validation.js";
 import { bytesToBase64, base64ToBytes } from "./base64.js";
+import { t } from "../shared/i18n.js";
 
 function createBookmarkId() {
   return `bm_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
@@ -73,7 +74,7 @@ export async function unlockVaultRecord(record, password) {
     const sentinel = await decryptString(normalized.auth, key);
 
     if (sentinel !== AUTH_SENTINEL) {
-      throw new Error("主密码不正确。");
+      throw new Error(t("主密码不正确。"));
     }
 
     const bookmarks = normalizeBookmarkList(await decryptJson(normalized.vault, key));
@@ -84,11 +85,11 @@ export async function unlockVaultRecord(record, password) {
       encodedKey: await exportKey(key)
     };
   } catch (error) {
-    if (error instanceof Error && error.message === "主密码不正确。") {
+    if (error instanceof Error && error.message === t("主密码不正确。")) {
       throw error;
     }
 
-    throw new Error("主密码不正确。");
+    throw new Error(t("主密码不正确。"));
   }
 }
 

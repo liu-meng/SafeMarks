@@ -16,8 +16,18 @@ import {
   encryptBookmarksWithEncodedKey,
   unlockVaultRecord
 } from "../core/vault.js";
+import {
+  formatDateTime,
+  getLocaleTag,
+  initializeI18n,
+  localizeDocument,
+  t
+} from "../shared/i18n.js";
 
 const MANAGER_PAGE_URL = chrome.runtime.getURL("src/manager/index.html");
+
+await initializeI18n();
+localizeDocument();
 
 const elements = {
   message: document.querySelector("#global-message"),
@@ -84,7 +94,7 @@ function parseReturnWindowId() {
 
 function getUnlockedSession(response) {
   if (response?.status !== "unlocked" || !response.session) {
-    throw new Error("会话不可用，请重新解锁。");
+    throw new Error(t("会话不可用，请重新解锁。"));
   }
 
   return response.session;
@@ -113,8 +123,8 @@ function updateLockedBookmarkCount(record = state.record) {
   const count = getBookmarkCount(record);
   elements.lockedBookmarkCount.textContent =
     count === null
-      ? "收藏条数将在首次解锁后同步"
-      : `已保存 ${count} 条收藏`;
+      ? t("收藏条数将在首次解锁后同步")
+      : t("已保存 {count} 条收藏", { count });
 }
 
 function setLockedQuickCaptureStatus() {
@@ -126,7 +136,7 @@ function setLockedQuickCaptureStatus() {
   }
 
   elements.lockedQuickCaptureStatus.textContent =
-    `有 ${count} 条快速收藏待写入，解锁后会自动导入保险库。`;
+    t("有 {count} 条快速收藏待写入，解锁后会自动导入保险库。", { count });
 }
 
 async function returnToQuickCaptureWindowIfNeeded() {
@@ -168,7 +178,7 @@ function resetSaveForm() {
   state.saveMode = "create";
   state.editingBookmarkId = null;
   elements.savePanel.hidden = true;
-  elements.savePanelTitle.textContent = "新建收藏";
+  elements.savePanelTitle.textContent = t("新建收藏");
   elements.addTitle.value = "";
   elements.addUrl.value = "";
   elements.addFolderPath.value = "";
@@ -178,8 +188,8 @@ function resetSaveForm() {
   elements.addFolderPath.disabled = true;
   elements.addNote.disabled = true;
   elements.addSubmit.disabled = true;
-  elements.addSubmit.textContent = "完成";
-  elements.pageStatus.textContent = "点击“保存当前页”后读取当前页面信息。";
+  elements.addSubmit.textContent = t("完成");
+  elements.pageStatus.textContent = t("点击“保存当前页”后读取当前页面信息。");
 }
 
 function openSaveForm(mode, bookmark = null) {
@@ -192,15 +202,15 @@ function openSaveForm(mode, bookmark = null) {
   elements.addFolderPath.disabled = false;
   elements.addNote.disabled = false;
   elements.addSubmit.disabled = false;
-  elements.savePanelTitle.textContent = mode === "edit" ? "编辑收藏" : "新建收藏";
-  elements.addSubmit.textContent = mode === "edit" ? "保存修改" : "完成";
+  elements.savePanelTitle.textContent = mode === "edit" ? t("编辑收藏") : t("新建收藏");
+  elements.addSubmit.textContent = mode === "edit" ? t("保存修改") : t("完成");
 
   if (mode === "edit" && bookmark) {
     elements.addTitle.value = bookmark.title;
     elements.addUrl.value = bookmark.url;
     elements.addFolderPath.value = bookmark.folderPath;
     elements.addNote.value = bookmark.note;
-    elements.pageStatus.textContent = "可修改标题、URL、分类目录和备注，保存后会覆盖原收藏。";
+    elements.pageStatus.textContent = t("可修改标题、URL、分类目录和备注，保存后会覆盖原收藏。");
     return;
   }
 
@@ -208,7 +218,7 @@ function openSaveForm(mode, bookmark = null) {
   elements.addUrl.value = "";
   elements.addFolderPath.value = "";
   elements.addNote.value = "";
-  elements.pageStatus.textContent = "正在读取当前页面信息...";
+  elements.pageStatus.textContent = t("正在读取当前页面信息...");
 }
 
 function setSaveTriggerFavicon(faviconUrl) {
@@ -223,7 +233,7 @@ function setSaveTriggerFavicon(faviconUrl) {
 }
 
 function formatTimestamp(timestamp) {
-  return new Intl.DateTimeFormat("zh-CN", {
+  return formatDateTime(timestamp, {
     month: "short",
     day: "numeric",
     hour: "2-digit",
@@ -273,7 +283,7 @@ function countTreeBookmarks(node) {
 }
 
 function sortFolderNodes(nodes) {
-  return [...nodes].sort((left, right) => left.name.localeCompare(right.name, "zh-CN"));
+  return [...nodes].sort((left, right) => left.name.localeCompare(right.name, getLocaleTag()));
 }
 
 function createBookmarkItem(bookmark) {
@@ -307,7 +317,7 @@ function createBookmarkItem(bookmark) {
   detailButton.type = "button";
   detailButton.className = "bookmark-action-button";
   detailButton.textContent =
-    state.detailBookmarkId === bookmark.id ? "收起详情" : "查看详情";
+    state.detailBookmarkId === bookmark.id ? t("收起详情") : t("查看详情");
   detailButton.addEventListener("click", () => {
     handleToggleBookmarkDetail(bookmark.id).catch((error) => {
       setMessage(error instanceof Error ? error.message : String(error), "error");
@@ -317,7 +327,7 @@ function createBookmarkItem(bookmark) {
   const editButton = document.createElement("button");
   editButton.type = "button";
   editButton.className = "bookmark-action-button";
-  editButton.textContent = "编辑";
+  editButton.textContent = t("编辑");
   editButton.addEventListener("click", () => {
     handleEditBookmark(bookmark.id).catch((error) => {
       setMessage(error instanceof Error ? error.message : String(error), "error");
@@ -327,7 +337,7 @@ function createBookmarkItem(bookmark) {
   const deleteButton = document.createElement("button");
   deleteButton.type = "button";
   deleteButton.className = "bookmark-delete-button";
-  deleteButton.textContent = "删除";
+  deleteButton.textContent = t("删除");
   deleteButton.addEventListener("click", () => {
     handleDeleteBookmark(bookmark.id).catch((error) => {
       setMessage(error instanceof Error ? error.message : String(error), "error");
@@ -352,8 +362,13 @@ function createBookmarkItem(bookmark) {
   const meta = document.createElement("div");
   meta.className = "meta";
   meta.textContent = bookmark.folderPath
-    ? `${bookmark.folderPath} · 保存于 ${formatTimestamp(bookmark.createdAt)}`
-    : `保存于 ${formatTimestamp(bookmark.createdAt)}`;
+    ? t("{folderPath} · 保存于 {timestamp}", {
+        folderPath: bookmark.folderPath,
+        timestamp: formatTimestamp(bookmark.createdAt)
+      })
+    : t("保存于 {timestamp}", {
+        timestamp: formatTimestamp(bookmark.createdAt)
+      });
 
   titleMain.append(faviconShell, titleLink);
   actionGroup.append(detailButton, editButton, deleteButton);
@@ -369,7 +384,7 @@ function createBookmarkItem(bookmark) {
       detailFolderRow.className = "bookmark-detail-row";
       const detailFolderLabel = document.createElement("span");
       detailFolderLabel.className = "bookmark-detail-label";
-      detailFolderLabel.textContent = "目录";
+      detailFolderLabel.textContent = t("目录");
       const detailFolderValue = document.createElement("div");
       detailFolderValue.className = "bookmark-detail-value";
       detailFolderValue.textContent = bookmark.folderPath;
@@ -394,17 +409,17 @@ function createBookmarkItem(bookmark) {
     detailNoteRow.className = "bookmark-detail-row";
     const detailNoteLabel = document.createElement("span");
     detailNoteLabel.className = "bookmark-detail-label";
-    detailNoteLabel.textContent = "备注";
+    detailNoteLabel.textContent = t("备注");
     const detailNoteValue = document.createElement("div");
     detailNoteValue.className = "bookmark-detail-value bookmark-detail-note";
-    detailNoteValue.textContent = bookmark.note || "无备注";
+    detailNoteValue.textContent = bookmark.note || t("无备注");
     detailNoteRow.append(detailNoteLabel, detailNoteValue);
 
     const detailTimeRow = document.createElement("div");
     detailTimeRow.className = "bookmark-detail-row";
     const detailTimeLabel = document.createElement("span");
     detailTimeLabel.className = "bookmark-detail-label";
-    detailTimeLabel.textContent = "保存时间";
+    detailTimeLabel.textContent = t("保存时间");
     const detailTimeValue = document.createElement("div");
     detailTimeValue.className = "bookmark-detail-value";
     detailTimeValue.textContent = formatTimestamp(bookmark.createdAt);
@@ -443,7 +458,9 @@ function appendTreeContent(listElement, node, queryActive) {
 
     const folderMeta = document.createElement("span");
     folderMeta.className = "bookmark-folder-meta";
-    folderMeta.textContent = `${countTreeBookmarks(child)} 条收藏`;
+    folderMeta.textContent = t("{count} 条收藏", {
+      count: countTreeBookmarks(child)
+    });
 
     const folderCaret = document.createElement("span");
     folderCaret.className = "bookmark-folder-caret";
@@ -471,11 +488,11 @@ function appendTreeContent(listElement, node, queryActive) {
 function updateSessionBadge(expiresAt) {
   const seconds = Math.max(0, Math.round((expiresAt - Date.now()) / 1000));
   const minutes = Math.max(1, Math.ceil(seconds / 60));
-  elements.sessionBadge.textContent = `已解锁 · 约 ${minutes} 分钟后自动锁定`;
+  elements.sessionBadge.textContent = t("已解锁 · 约 {minutes} 分钟后自动锁定", { minutes });
 }
 
 function formatQuickCaptureImportMessage(importedCount) {
-  return `已导入 ${importedCount} 条快速收藏。`;
+  return t("已导入 {count} 条快速收藏。", { count: importedCount });
 }
 
 async function refreshQuickCaptureBadge() {
@@ -502,7 +519,7 @@ function scheduleLocalLock(expiresAt) {
   state.lockTimer = window.setTimeout(() => {
     resetUnlockedState();
     showScreen("locked");
-    setMessage("已因无操作自动锁定，请重新输入主密码。", "info");
+    setMessage(t("已因无操作自动锁定，请重新输入主密码。"), "info");
   }, timeout);
 }
 
@@ -521,12 +538,15 @@ function renderBookmarks() {
   const filtered = getBookmarkSearchResults(state.bookmarks, query);
 
   elements.bookmarkCount.textContent = query
-    ? `${filtered.length} / ${state.bookmarks.length} 条收藏`
-    : `${state.bookmarks.length} 条收藏`;
+    ? t("{visibleCount} / {totalCount} 条收藏", {
+        visibleCount: filtered.length,
+        totalCount: state.bookmarks.length
+      })
+    : t("{count} 条收藏", { count: state.bookmarks.length });
   elements.emptyState.hidden = filtered.length > 0;
   elements.emptyState.textContent = query
-    ? "没有匹配的收藏。"
-    : "还没有收藏，先把当前页加入保险库。";
+    ? t("没有匹配的收藏。")
+    : t("还没有收藏，先把当前页加入保险库。");
   elements.bookmarkList.replaceChildren();
   if (filtered.length === 0) {
     return;
@@ -583,7 +603,7 @@ async function refreshCurrentPageCandidate() {
   elements.addSubmit.disabled = false;
   elements.addTitle.value = candidate.title;
   elements.addUrl.value = candidate.url;
-  elements.pageStatus.textContent = "可按原生收藏习惯修改标题或 URL 后再保存。";
+  elements.pageStatus.textContent = t("可按原生收藏习惯修改标题或 URL 后再保存。");
 }
 
 async function touchSessionState() {
@@ -591,7 +611,7 @@ async function touchSessionState() {
   if (response.status !== "unlocked" || !response.session) {
     resetUnlockedState();
     showScreen("locked");
-    setMessage("保险库已锁定，请重新解锁。", "info");
+    setMessage(t("保险库已锁定，请重新解锁。"), "info");
     throw new Error("Session is locked.");
   }
 
@@ -660,7 +680,7 @@ async function initialize() {
 
     if (!record) {
       showScreen("setup");
-      setMessage("首次使用需要创建一个主密码。", "info");
+      setMessage(t("首次使用需要创建一个主密码。"), "info");
       return;
     }
 
@@ -682,8 +702,8 @@ async function initialize() {
     showScreen("locked");
     setMessage(
       status.status === "expired"
-        ? "会话已过期，请重新输入主密码。"
-        : "输入主密码即可解锁。",
+        ? t("会话已过期，请重新输入主密码。")
+        : t("输入主密码即可解锁。"),
       "info"
     );
   } catch (error) {
@@ -698,12 +718,12 @@ async function handleSetupSubmit(event) {
   const confirm = elements.setupConfirm.value;
 
   if (!password) {
-    setMessage("主密码不能为空。", "error");
+    setMessage(t("主密码不能为空。"), "error");
     return;
   }
 
   if (password !== confirm) {
-    setMessage("两次输入的主密码不一致。", "error");
+    setMessage(t("两次输入的主密码不一致。"), "error");
     return;
   }
 
@@ -718,7 +738,7 @@ async function handleSetupSubmit(event) {
     await showUnlocked(record, created.encodedKey, [], session);
     elements.setupForm.reset();
     elements.setupAutolock.value = String(record.settings.autoLockMinutes);
-    setMessage("保险库已创建并完成解锁。", "success");
+    setMessage(t("保险库已创建并完成解锁。"), "success");
   } catch (error) {
     setMessage(error instanceof Error ? error.message : String(error), "error");
   }
@@ -730,7 +750,7 @@ async function handleUnlockSubmit(event) {
     const record = await loadVaultRecord();
     if (!record) {
       showScreen("setup");
-      setMessage("尚未初始化，请先创建主密码。", "info");
+      setMessage(t("尚未初始化，请先创建主密码。"), "info");
       return;
     }
 
@@ -753,13 +773,13 @@ async function handleUnlockSubmit(event) {
     }
     setMessage(
       importedCount > 0
-        ? `已解锁保险库，并${formatQuickCaptureImportMessage(importedCount)}`
-        : "已解锁保险库。",
+        ? t("已解锁保险库，并已导入 {count} 条快速收藏。", { count: importedCount })
+        : t("已解锁保险库。"),
       "success"
     );
   } catch (error) {
     setMessage(
-      error instanceof Error ? error.message : "解锁失败，请确认主密码。",
+      error instanceof Error ? error.message : t("解锁失败，请确认主密码。"),
       "error"
     );
   }
@@ -786,7 +806,7 @@ async function handleAddSubmit(event) {
     if (state.saveMode === "edit") {
       const currentBookmark = state.bookmarks.find((bookmark) => bookmark.id === state.editingBookmarkId);
       if (!currentBookmark) {
-        throw new Error("要编辑的收藏不存在。");
+        throw new Error(t("要编辑的收藏不存在。"));
       }
 
       const draftBookmark = createBookmark({
@@ -806,7 +826,7 @@ async function handleAddSubmit(event) {
             }
           : bookmark
       );
-      await persistBookmarks(nextBookmarks, "收藏已更新。");
+      await persistBookmarks(nextBookmarks, t("收藏已更新。"));
     } else {
       const bookmark = createBookmark({
         title: elements.addTitle.value,
@@ -815,7 +835,7 @@ async function handleAddSubmit(event) {
         note: elements.addNote.value
       });
       const nextBookmarks = [bookmark, ...state.bookmarks];
-      await persistBookmarks(nextBookmarks, "当前页已加密保存。");
+      await persistBookmarks(nextBookmarks, t("当前页已加密保存。"));
     }
 
     resetSaveForm();
@@ -847,7 +867,7 @@ async function handleEditBookmark(bookmarkId) {
   await touchSessionState();
   const bookmark = state.bookmarks.find((item) => item.id === bookmarkId);
   if (!bookmark) {
-    throw new Error("要编辑的收藏不存在。");
+    throw new Error(t("要编辑的收藏不存在。"));
   }
 
   openSaveForm("edit", bookmark);
@@ -858,10 +878,10 @@ async function handleEditBookmark(bookmarkId) {
 async function handleDeleteBookmark(bookmarkId) {
   const bookmark = state.bookmarks.find((item) => item.id === bookmarkId);
   if (!bookmark) {
-    throw new Error("要删除的收藏不存在。");
+    throw new Error(t("要删除的收藏不存在。"));
   }
 
-  const confirmed = window.confirm(`确认删除“${bookmark.title}”？`);
+  const confirmed = window.confirm(t("确认删除“{title}”？", { title: bookmark.title }));
   if (!confirmed) {
     return;
   }
@@ -871,7 +891,7 @@ async function handleDeleteBookmark(bookmarkId) {
   }
 
   const nextBookmarks = state.bookmarks.filter((item) => item.id !== bookmarkId);
-  await persistBookmarks(nextBookmarks, "收藏已删除。");
+  await persistBookmarks(nextBookmarks, t("收藏已删除。"));
 }
 
 function handleSearchInput() {
@@ -884,7 +904,7 @@ async function handleManualLock() {
   await sessionLock();
   resetUnlockedState();
   showScreen("locked");
-  setMessage("保险库已手动锁定。", "info");
+  setMessage(t("保险库已手动锁定。"), "info");
 }
 
 elements.setupForm.addEventListener("submit", handleSetupSubmit);

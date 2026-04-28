@@ -1,4 +1,5 @@
 import { isSupportedBookmarkUrl } from "./validation.js";
+import { t } from "../shared/i18n.js";
 
 export function getPageFaviconUrl(rawUrl, preferredUrl = "") {
   if (preferredUrl) {
@@ -16,7 +17,7 @@ export async function getCurrentPageCandidate() {
   if (!globalThis.chrome?.tabs?.query) {
     return {
       supported: false,
-      reason: "当前环境无法读取标签页信息。"
+      reason: t("当前环境无法读取标签页信息。")
     };
   }
 
@@ -28,14 +29,14 @@ export async function getCurrentPageCandidate() {
   if (!tab?.url) {
     return {
       supported: false,
-      reason: "当前页面无法读取 URL。"
+      reason: t("当前页面无法读取 URL。")
     };
   }
 
   if (!isSupportedBookmarkUrl(tab.url)) {
     return {
       supported: false,
-      reason: "仅支持保存普通网页，不支持浏览器内部页面。"
+      reason: t("仅支持保存普通网页，不支持浏览器内部页面。")
     };
   }
 
