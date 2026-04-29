@@ -24,8 +24,8 @@ const EN_TRANSLATIONS = Object.freeze({
   "popup 只保留解锁、保存当前页和快速查找；完整维护请到管理页。":
     "The popup is limited to unlock, save current page, and quick search. Use the manager for full maintenance.",
   "首次创建保险库": "Create Your Vault",
-  "创建后会立即加密一个空收藏库，之后所有收藏都只保存密文。":
-    "An empty bookmark vault is encrypted immediately after setup. All bookmarks are stored as ciphertext afterward.",
+  "创建后会立即加密一个空收藏库；常规保存会直接写入密文，锁定状态下的快速收藏会先本地暂存，待解锁后导入保险库。":
+    "An empty bookmark vault is encrypted immediately after setup. Regular saves go straight into the encrypted vault, while quick captures created during the locked state are stored locally until the next unlock imports them.",
   "主密码": "Master Password",
   "确认主密码": "Confirm Master Password",
   "自动锁定": "Auto Lock",

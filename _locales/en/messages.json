@@ -3,7 +3,7 @@
     "message": "SafeMarks"
   },
   "extensionDescription": {
-    "message": "Zero-trust local encrypted bookmarks extension."
+    "message": "Store and manage bookmarks in a local encrypted vault."
   },
   "commandQuickCaptureDescription": {
     "message": "Open quick capture (choose an existing folder or create a new one)"
