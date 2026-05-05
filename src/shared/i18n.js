@@ -320,40 +320,51 @@ function getRuntimeErrorMessage() {
   return globalThis.chrome?.runtime?.lastError?.message ?? "";
 }
 
-function storageGet(storage, key) {
+function callStorageMethod(storage, methodName, ...args) {
   return new Promise((resolve, reject) => {
+    let settled = false;
+
+    function settle(callback, value) {
+      if (settled) {
+        return;
+      }
+
+      settled = true;
+      callback(value);
+    }
+
     try {
-      storage.get(key, (result) => {
+      const callback = (result) => {
         const message = getRuntimeErrorMessage();
         if (message) {
-          reject(new Error(message));
+          settle(reject, new Error(message));
           return;
         }
 
-        resolve(result ?? {});
-      });
+        settle(resolve, result);
+      };
+
+      const returned = storage[methodName](...args, callback);
+      if (returned && typeof returned.then === "function") {
+        returned.then(
+          callback,
+          (error) => {
+            settle(reject, error);
+          }
+        );
+      }
     } catch (error) {
-      reject(error);
+      settle(reject, error);
     }
   });
 }
 
-function storageSet(storage, value) {
-  return new Promise((resolve, reject) => {
-    try {
-      storage.set(value, () => {
-        const message = getRuntimeErrorMessage();
-        if (message) {
-          reject(new Error(message));
-          return;
-        }
+function storageGet(storage, key) {
+  return callStorageMethod(storage, "get", key).then((result) => result ?? {});
+}
 
-        resolve();
-      });
-    } catch (error) {
-      reject(error);
-    }
-  });
+function storageSet(storage, value) {
+  return callStorageMethod(storage, "set", value).then(() => {});
 }
 
 function getBrowserLocale() {

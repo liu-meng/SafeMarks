@@ -15,8 +15,6 @@ import {
 } from "../core/storage.js";
 import { initializeI18n, t } from "../shared/i18n.js";
 
-await initializeI18n();
-
 const COMMANDS = {
   QUICK_CAPTURE: "quick-capture",
   OPEN_MANAGER: "open-manager",
@@ -38,6 +36,19 @@ const ACTION_STATUS = {
     color: "#8f3d32"
   }
 };
+
+let i18nInitializationPromise = null;
+
+function ensureI18n() {
+  if (!i18nInitializationPromise) {
+    i18nInitializationPromise = initializeI18n().catch((error) => {
+      i18nInitializationPromise = null;
+      throw error;
+    });
+  }
+
+  return i18nInitializationPromise;
+}
 
 async function handleSessionSet(message) {
   const session = createSessionRecord({
@@ -123,6 +134,8 @@ function formatPendingBadgeText(count) {
 }
 
 async function refreshActionBadge() {
+  await ensureI18n();
+
   const pending = await loadPendingQuickCaptures();
   const count = pending.length;
 
@@ -160,6 +173,8 @@ async function flashActionStatus(status, title) {
 }
 
 async function handleQuickCaptureCommand() {
+  await ensureI18n();
+
   const hasVault = await hasStoredVaultRecord();
   if (!hasVault) {
     await flashActionStatus("error", t("SafeMarks 尚未初始化，无法快速收藏。"));

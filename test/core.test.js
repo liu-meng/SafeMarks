@@ -30,7 +30,9 @@ import {
 import { normalizeVaultRecord } from "../src/core/validation.js";
 import {
   LANGUAGE_PREFERENCES,
-  resolveLocaleFromPreference
+  initializeI18n,
+  resolveLocaleFromPreference,
+  setLanguagePreference
 } from "../src/shared/i18n.js";
 
 test("base64 helpers round-trip bytes", () => {
@@ -69,6 +71,59 @@ test("auto language falls back to English when browser locale is unsupported", (
     resolveLocaleFromPreference(LANGUAGE_PREFERENCES.AUTO, "zh-TW"),
     LANGUAGE_PREFERENCES.CHINESE
   );
+});
+
+test("i18n initialization supports promise-style storage APIs", async () => {
+  const originalChrome = globalThis.chrome;
+  const storageState = {
+    languagePreference: LANGUAGE_PREFERENCES.CHINESE
+  };
+
+  globalThis.chrome = {
+    runtime: {
+      lastError: null
+    },
+    i18n: {
+      getUILanguage: () => "en-US"
+    },
+    storage: {
+      local: {
+        get(key) {
+          return Promise.resolve({
+            [key]: storageState[key]
+          });
+        },
+        set(value) {
+          Object.assign(storageState, value);
+          return Promise.resolve();
+        }
+      },
+      onChanged: {
+        addListener() {}
+      }
+    }
+  };
+
+  try {
+    const locale = await Promise.race([
+      initializeI18n({ force: true }),
+      new Promise((_resolve, reject) => {
+        setTimeout(() => reject(new Error("initializeI18n timed out")), 200);
+      })
+    ]);
+
+    assert.equal(locale, LANGUAGE_PREFERENCES.CHINESE);
+
+    const savedLocale = await setLanguagePreference(LANGUAGE_PREFERENCES.ENGLISH);
+    assert.equal(savedLocale, LANGUAGE_PREFERENCES.ENGLISH);
+    assert.equal(storageState.languagePreference, LANGUAGE_PREFERENCES.ENGLISH);
+  } finally {
+    if (originalChrome === undefined) {
+      delete globalThis.chrome;
+    } else {
+      globalThis.chrome = originalChrome;
+    }
+  }
 });
 
 test("bookmark payload stays encrypted round-trip with encoded key", async () => {
