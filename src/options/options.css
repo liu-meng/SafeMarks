@@ -1,66 +1,83 @@
 .options-shell {
-  max-width: 960px;
+  max-width: 880px;
   margin: 0 auto;
-  padding-bottom: 42px;
+  padding-bottom: 28px;
 }
 
 .options-hero {
   display: grid;
-  gap: 22px;
+  gap: 16px;
 }
 
 .options-hero-copy {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px 12px;
+  align-items: start;
   min-width: 0;
+}
+
+.options-hero-copy .eyebrow,
+.options-hero-copy h1,
+.options-hero-copy .subtitle {
+  grid-column: 1;
+}
+
+.options-hero-copy .button-row {
+  grid-column: 2;
+  grid-row: 1 / span 3;
+  align-self: start;
+  justify-content: flex-end;
 }
 
 .options-hero-with-unlock {
   align-items: start;
-  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.95fr);
+  grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.9fr);
 }
 
 .import-hero {
   display: grid;
   grid-template-columns: minmax(0, 1.4fr) minmax(260px, 0.9fr);
-  gap: 20px;
+  gap: 16px;
   align-items: center;
   background:
-    linear-gradient(135deg, rgba(18, 101, 109, 0.14), rgba(201, 145, 52, 0.12)),
+    linear-gradient(135deg, rgba(29, 122, 109, 0.12), rgba(123, 198, 180, 0.08)),
     var(--card);
 }
 
 .import-hero-copy {
-  gap: 10px;
+  gap: 8px;
 }
 
 .import-hero-actions {
   align-items: stretch;
-  gap: 12px;
+  gap: 10px;
 }
 
 .import-hero-button {
-  min-height: 56px;
-  font-size: 16px;
+  min-height: 46px;
+  font-size: 15px;
   font-weight: 600;
 }
 
 .status-panel {
-  gap: 16px;
+  gap: 12px;
 }
 
 .status-summary {
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
 .status-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 14px;
-  padding: 14px 16px;
+  gap: 12px;
+  padding: 12px 14px;
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.62);
 }
 
 .status-label {
@@ -69,11 +86,11 @@
 }
 
 .unlock-panel {
-  gap: 16px;
-  padding: 18px;
+  gap: 12px;
+  padding: 16px;
   border: 1px solid rgba(18, 101, 109, 0.2);
   border-radius: var(--radius-lg);
-  background: rgba(255, 255, 255, 0.52);
+  background: rgba(255, 255, 255, 0.62);
 }
 
 .unlock-status-badge {
@@ -82,7 +99,7 @@
 
 .unlock-form {
   display: grid;
-  gap: 12px;
+  gap: 10px;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: end;
 }
@@ -96,17 +113,17 @@
 }
 
 .settings-label {
-  min-width: 220px;
+  min-width: 200px;
   flex: 1;
 }
 
 .language-settings-panel {
-  gap: 16px;
+  gap: 12px;
 }
 
 .reset-confirm-panel {
-  gap: 12px;
-  padding: 16px;
+  gap: 10px;
+  padding: 14px;
   border: 1px solid rgba(143, 61, 50, 0.18);
   border-radius: var(--radius-md);
   background: rgba(143, 61, 50, 0.06);
@@ -114,23 +131,23 @@
 
 .shortcut-list {
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
 .shortcut-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 14px;
-  padding: 14px 16px;
+  gap: 12px;
+  padding: 12px 14px;
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.62);
 }
 
 .shortcut-copy {
   min-width: 0;
-  gap: 6px;
+  gap: 4px;
 }
 
 .shortcut-binding {
@@ -150,6 +167,14 @@
 }
 
 @media (max-width: 720px) {
+  .options-hero-copy {
+    display: flex;
+  }
+
+  .options-hero-copy .button-row {
+    justify-content: flex-start;
+  }
+
   .options-hero-with-unlock,
   .import-hero {
     grid-template-columns: 1fr;

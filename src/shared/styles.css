@@ -1,25 +1,25 @@
 :root {
   color-scheme: light;
-  --bg: #f7f0e2;
-  --bg-strong: #fdf8ef;
-  --card: rgba(255, 251, 243, 0.88);
-  --card-strong: #fffdf7;
-  --line: rgba(49, 44, 37, 0.12);
-  --line-strong: rgba(49, 44, 37, 0.22);
-  --text: #231b14;
-  --muted: #65594d;
-  --accent: #12656d;
-  --accent-soft: rgba(18, 101, 109, 0.12);
+  --bg: #eef5f2;
+  --bg-strong: #f7fbf9;
+  --card: rgba(255, 255, 255, 0.84);
+  --card-strong: #ffffff;
+  --line: rgba(32, 66, 60, 0.1);
+  --line-strong: rgba(32, 66, 60, 0.18);
+  --text: #18312c;
+  --muted: #617770;
+  --accent: #1d7a6d;
+  --accent-soft: rgba(29, 122, 109, 0.1);
   --warn: #8f3d32;
   --warn-soft: rgba(143, 61, 50, 0.12);
   --success: #236b3d;
   --success-soft: rgba(35, 107, 61, 0.12);
-  --shadow: 0 24px 50px rgba(49, 44, 37, 0.12);
-  --radius-lg: 20px;
-  --radius-md: 14px;
-  --radius-sm: 10px;
-  --font-display: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
-  --font-body: "Avenir Next", "Segoe UI", "Helvetica Neue", sans-serif;
+  --shadow: 0 10px 30px rgba(24, 49, 44, 0.08);
+  --radius-lg: 16px;
+  --radius-md: 12px;
+  --radius-sm: 9px;
+  --font-display: "Avenir Next", "PingFang SC", "Segoe UI", "Helvetica Neue", sans-serif;
+  --font-body: "Avenir Next", "PingFang SC", "Segoe UI", "Helvetica Neue", sans-serif;
 }
 
 * {
@@ -35,9 +35,10 @@ body {
   min-height: 100vh;
   color: var(--text);
   font-family: var(--font-body);
+  line-height: 1.5;
   background:
-    radial-gradient(circle at top left, rgba(18, 101, 109, 0.16), transparent 32%),
-    radial-gradient(circle at bottom right, rgba(201, 145, 52, 0.18), transparent 30%),
+    radial-gradient(circle at top right, rgba(29, 122, 109, 0.1), transparent 28%),
+    radial-gradient(circle at bottom left, rgba(113, 187, 170, 0.12), transparent 30%),
     linear-gradient(180deg, var(--bg-strong), var(--bg));
 }
 
@@ -53,13 +54,13 @@ button {
 }
 
 .app-shell {
-  padding: 18px;
+  padding: 16px;
 }
 
 .stack {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
 }
 
 .panel {
@@ -67,17 +68,17 @@ button {
   background: var(--card);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(6px);
 }
 
 .panel-pad {
-  padding: 18px;
+  padding: 16px;
 }
 
 .eyebrow {
-  margin: 0 0 8px;
-  font-size: 12px;
-  letter-spacing: 0.16em;
+  margin: 0 0 6px;
+  font-size: 11px;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--muted);
 }
@@ -88,7 +89,20 @@ button {
   margin: 0;
   font-family: var(--font-display);
   font-weight: 700;
-  line-height: 1.1;
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+}
+
+.panel h1 {
+  font-size: clamp(24px, 3vw, 28px);
+}
+
+.panel h2 {
+  font-size: clamp(18px, 2.2vw, 20px);
+}
+
+.panel h3 {
+  font-size: 16px;
 }
 
 .subtitle,
@@ -96,26 +110,31 @@ button {
 .meta,
 .helper-text {
   margin: 0;
+  font-size: 13px;
   color: var(--muted);
-  line-height: 1.5;
+  line-height: 1.45;
 }
 
 .label {
   display: flex;
   flex-direction: column;
-  gap: 7px;
-  font-size: 14px;
+  gap: 6px;
+  font-size: 13px;
 }
 
 .input,
 .select,
 .textarea {
   width: 100%;
-  padding: 11px 13px;
+  padding: 10px 12px;
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-sm);
-  background: rgba(255, 255, 255, 0.82);
+  background: rgba(255, 255, 255, 0.9);
   color: var(--text);
+}
+
+.textarea {
+  resize: vertical;
 }
 
 .input:focus,
@@ -129,17 +148,18 @@ button {
 .button-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
 }
 
 .button,
 .button-secondary,
 .button-danger,
 .ghost-button {
-  min-height: 42px;
-  padding: 0 16px;
+  min-height: 38px;
+  padding: 0 14px;
   border-radius: 999px;
   border: 1px solid transparent;
+  font-weight: 600;
   transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
 }
 
@@ -152,13 +172,13 @@ button {
 
 .button {
   color: #fff;
-  background: linear-gradient(135deg, #12656d, #1d8994);
-  box-shadow: 0 12px 24px rgba(18, 101, 109, 0.24);
+  background: linear-gradient(135deg, #1d7a6d, #339886);
+  box-shadow: 0 8px 18px rgba(29, 122, 109, 0.18);
 }
 
 .button-secondary {
   color: var(--text);
-  background: rgba(255, 255, 255, 0.82);
+  background: rgba(255, 255, 255, 0.88);
   border-color: var(--line-strong);
 }
 
@@ -170,7 +190,7 @@ button {
 
 .ghost-button {
   color: var(--accent);
-  background: transparent;
+  background: rgba(29, 122, 109, 0.04);
   border-color: rgba(18, 101, 109, 0.2);
 }
 
@@ -185,7 +205,7 @@ button {
 }
 
 .message {
-  padding: 12px 14px;
+  padding: 10px 12px;
   border-radius: var(--radius-md);
   border: 1px solid transparent;
   line-height: 1.45;
@@ -213,24 +233,24 @@ button {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 14px;
+  gap: 12px;
 }
 
 .badge {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
+  gap: 6px;
+  padding: 5px 10px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.78);
+  background: rgba(255, 255, 255, 0.82);
   border: 1px solid var(--line);
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .empty-state {
-  padding: 18px;
+  padding: 16px;
   border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.6);
   border: 1px dashed var(--line-strong);
   color: var(--muted);
 }
@@ -241,17 +261,17 @@ button {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 .bookmark-item {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 14px;
+  gap: 6px;
+  padding: 12px;
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.62);
+  background: rgba(255, 255, 255, 0.72);
 }
 
 .bookmark-item a {
@@ -264,14 +284,14 @@ button {
 }
 
 .bookmark-url {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--muted);
   word-break: break-all;
 }
 
 .status-grid {
   display: grid;
-  gap: 14px;
+  gap: 12px;
   align-items: stretch;
 }
 

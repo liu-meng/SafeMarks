@@ -1,16 +1,16 @@
 .manager-shell {
-  max-width: 1180px;
+  max-width: 1120px;
   margin: 0 auto;
-  padding-bottom: 42px;
+  padding-bottom: 28px;
 }
 
 .panel-tight {
-  gap: 6px;
+  gap: 4px;
 }
 
 .manager-hero {
   display: grid;
-  gap: 18px;
+  gap: 14px;
 }
 
 .manager-hero-head {
@@ -27,11 +27,11 @@
 }
 
 .unlock-panel {
-  gap: 16px;
-  padding: 18px;
+  gap: 12px;
+  padding: 16px;
   border: 1px solid rgba(18, 101, 109, 0.2);
   border-radius: var(--radius-lg);
-  background: rgba(255, 255, 255, 0.52);
+  background: rgba(255, 255, 255, 0.62);
 }
 
 .unlock-status-badge {
@@ -40,7 +40,7 @@
 
 .unlock-form {
   display: grid;
-  gap: 12px;
+  gap: 10px;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: end;
 }
@@ -54,7 +54,7 @@
 }
 
 .manager-panel {
-  gap: 14px;
+  gap: 12px;
 }
 
 .manager-panel-head {
@@ -64,24 +64,24 @@
 .manager-row {
   display: grid;
   grid-template-columns: minmax(0, 2.4fr) minmax(0, 1.15fr) minmax(0, 1.55fr) 116px auto;
-  gap: 12px;
+  gap: 10px;
   align-items: start;
 }
 
 .manager-bookmark-list {
-  gap: 8px;
+  gap: 6px;
 }
 
 .manager-folder-header {
   display: flex;
   align-items: stretch;
-  gap: 10px;
+  gap: 8px;
 }
 
 .bookmark-folder-group {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 .bookmark-folder-toggle {
@@ -89,9 +89,9 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
   width: 100%;
-  padding: 14px;
+  padding: 12px;
   border: 1px solid rgba(18, 101, 109, 0.16);
   border-radius: var(--radius-md);
   background: rgba(18, 101, 109, 0.08);
@@ -118,7 +118,7 @@
 }
 
 .bookmark-folder-meta {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--muted);
 }
 
@@ -130,13 +130,13 @@
 }
 
 .bookmark-nested-list {
-  padding-left: 14px;
+  padding-left: 12px;
   border-left: 1px solid rgba(18, 101, 109, 0.12);
 }
 
 .manager-folder-group,
 .manager-nested-list {
-  gap: 8px;
+  gap: 6px;
 }
 
 .manager-folder-delete-button {
@@ -151,14 +151,14 @@
 }
 
 .manager-row {
-  padding: 12px 14px;
+  padding: 10px 12px;
 }
 
 .manager-row-main {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
 
 .manager-row-title {
@@ -177,7 +177,7 @@
 .manager-row-text,
 .manager-row-time {
   margin: 0;
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1.4;
   color: var(--muted);
   word-break: break-word;
@@ -205,17 +205,17 @@
 .manager-row-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 6px;
+  gap: 5px;
   flex-wrap: wrap;
 }
 
 .manager-action-button,
 .manager-delete-button {
-  min-height: 30px;
-  padding: 0 10px;
+  min-height: 28px;
+  padding: 0 9px;
   border-radius: 999px;
   border: 1px solid transparent;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   white-space: nowrap;
 }
@@ -243,17 +243,17 @@
 }
 
 .manager-edit-item {
-  padding: 14px;
+  padding: 12px;
 }
 
 .manager-edit-form {
-  gap: 12px;
+  gap: 10px;
 }
 
 .manager-edit-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 10px;
 }
 
 .manager-edit-note {
@@ -264,13 +264,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
 .manager-edit-time {
   margin: 0;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--muted);
 }
 
