@@ -33,7 +33,6 @@ const elements = {
   bookmarkCount: document.querySelector("#bookmark-count"),
   managerStatus: document.querySelector("#manager-status"),
   searchInput: document.querySelector("#search-input"),
-  tableHead: document.querySelector("#table-head"),
   emptyState: document.querySelector("#empty-state"),
   bookmarkList: document.querySelector("#bookmark-list")
 };
@@ -45,7 +44,9 @@ const state = {
   encodedKey: "",
   bookmarks: [],
   query: "",
-  editingBookmarkId: null
+  editingBookmarkId: null,
+  collapsedFolders: new Set(),
+  knownFolderPaths: new Set()
 };
 
 function formatQuickCaptureImportMessage(importedCount) {
@@ -117,10 +118,82 @@ function formatTimestamp(timestamp) {
   });
 }
 
+function createFolderNode(name = "", path = "") {
+  return {
+    name,
+    path,
+    bookmarks: [],
+    children: new Map()
+  };
+}
+
+function buildBookmarkTree(bookmarks) {
+  const root = createFolderNode();
+
+  for (const bookmark of bookmarks) {
+    const segments = bookmark.folderPath ? bookmark.folderPath.split("/") : [];
+    let node = root;
+
+    for (const segment of segments) {
+      const path = node.path ? `${node.path}/${segment}` : segment;
+      if (!node.children.has(segment)) {
+        node.children.set(segment, createFolderNode(segment, path));
+      }
+
+      node = node.children.get(segment);
+    }
+
+    node.bookmarks.push(bookmark);
+  }
+
+  return root;
+}
+
+function countTreeBookmarks(node) {
+  let total = node.bookmarks.length;
+
+  for (const child of node.children.values()) {
+    total += countTreeBookmarks(child);
+  }
+
+  return total;
+}
+
+function sortFolderNodes(nodes) {
+  return [...nodes].sort((left, right) => left.name.localeCompare(right.name));
+}
+
+function collectFolderPaths(node, paths = new Set()) {
+  for (const child of node.children.values()) {
+    paths.add(child.path);
+    collectFolderPaths(child, paths);
+  }
+
+  return paths;
+}
+
+function syncCollapsedFolderState(tree) {
+  const currentFolderPaths = collectFolderPaths(tree);
+  const nextCollapsedFolders = new Set(
+    [...state.collapsedFolders].filter((folderPath) => currentFolderPaths.has(folderPath))
+  );
+
+  for (const folderPath of currentFolderPaths) {
+    if (!state.knownFolderPaths.has(folderPath)) {
+      nextCollapsedFolders.add(folderPath);
+    }
+  }
+
+  state.collapsedFolders = nextCollapsedFolders;
+  state.knownFolderPaths = currentFolderPaths;
+}
+
 function clearUnlockedState(clearQuery = false) {
   state.encodedKey = "";
   state.bookmarks = [];
   state.editingBookmarkId = null;
+  state.collapsedFolders = new Set();
+  state.knownFolderPaths = new Set();
 
   if (clearQuery) {
     state.query = "";
@@ -377,6 +450,63 @@ function createManagerRow(bookmark) {
   return item;
 }
 
+function createFolderGroup(node, queryActive) {
+  const group = document.createElement("li");
+  group.className = "bookmark-folder-group manager-folder-group";
+
+  const expanded = queryActive || !state.collapsedFolders.has(node.path);
+
+  const toggle = document.createElement("button");
+  toggle.type = "button";
+  toggle.className = "bookmark-folder-toggle manager-folder-toggle";
+  toggle.setAttribute("aria-expanded", String(expanded));
+  toggle.addEventListener("click", () => {
+    handleToggleFolder(node.path).catch((error) => {
+      setMessage(error instanceof Error ? error.message : String(error), "error");
+    });
+  });
+
+  const folderMain = document.createElement("span");
+  folderMain.className = "bookmark-folder-main";
+
+  const folderTitle = document.createElement("span");
+  folderTitle.className = "bookmark-folder-title";
+  folderTitle.textContent = node.name;
+
+  const folderMeta = document.createElement("span");
+  folderMeta.className = "bookmark-folder-meta";
+  folderMeta.textContent = t("{count} 条收藏", {
+    count: countTreeBookmarks(node)
+  });
+
+  const folderCaret = document.createElement("span");
+  folderCaret.className = "bookmark-folder-caret";
+  folderCaret.setAttribute("aria-hidden", "true");
+  folderCaret.textContent = expanded ? "-" : "+";
+
+  folderMain.append(folderTitle, folderMeta);
+  toggle.append(folderMain, folderCaret);
+  group.append(toggle);
+
+  const nestedList = document.createElement("ul");
+  nestedList.className = "bookmark-list manager-bookmark-list bookmark-nested-list manager-nested-list";
+  nestedList.hidden = !expanded;
+  appendTreeContent(nestedList, node, queryActive);
+  group.append(nestedList);
+
+  return group;
+}
+
+function appendTreeContent(listElement, node, queryActive) {
+  for (const child of sortFolderNodes(node.children.values())) {
+    listElement.append(createFolderGroup(child, queryActive));
+  }
+
+  for (const bookmark of node.bookmarks) {
+    listElement.append(createManagerRow(bookmark));
+  }
+}
+
 function renderView() {
   const unlocked = state.hasVault && state.sessionState === "unlocked";
   const filteredBookmarks = unlocked
@@ -386,7 +516,6 @@ function renderView() {
   elements.searchInput.disabled = !unlocked;
   elements.searchInput.value = state.query;
   elements.bookmarkList.replaceChildren();
-  elements.tableHead.hidden = true;
   elements.emptyState.hidden = true;
 
   if (!state.hasVault) {
@@ -404,7 +533,7 @@ function renderView() {
       state.sessionState === "expired"
         ? t("当前会话已过期，请重新解锁后再继续维护收藏。")
         : t("先解锁后，才能查看完整信息并编辑或删除收藏。");
-    elements.emptyState.textContent = t("解锁后这里会显示紧凑的收藏维护视图。");
+    elements.emptyState.textContent = t("解锁后这里会显示按目录分组的收藏维护视图。");
     elements.emptyState.hidden = false;
     return;
   }
@@ -417,9 +546,13 @@ function renderView() {
     : t("{count} 条收藏", { count: state.bookmarks.length });
   elements.managerStatus.textContent = state.query.trim()
     ? t("正在按标题、URL、目录和备注筛选收藏。")
-    : t("紧凑视图已按保存时间倒序展示，可直接在当前页编辑或删除。");
+    : t("目录树默认折叠，收藏按保存时间倒序展示，可直接在当前页编辑或删除。");
 
   if (filteredBookmarks.length === 0) {
+    if (!state.query.trim()) {
+      state.collapsedFolders = new Set();
+      state.knownFolderPaths = new Set();
+    }
     elements.emptyState.textContent =
       state.bookmarks.length === 0
         ? t("还没有收藏，先在 popup 保存当前页。")
@@ -428,10 +561,12 @@ function renderView() {
     return;
   }
 
-  elements.tableHead.hidden = false;
-  for (const bookmark of filteredBookmarks) {
-    elements.bookmarkList.append(createManagerRow(bookmark));
+  const queryActive = Boolean(state.query.trim());
+  const tree = buildBookmarkTree(filteredBookmarks);
+  if (!queryActive) {
+    syncCollapsedFolderState(tree);
   }
+  appendTreeContent(elements.bookmarkList, tree, queryActive);
 }
 
 async function refreshView(message = "") {
@@ -570,6 +705,18 @@ async function handleDeleteBookmark(bookmarkId) {
 
   const nextBookmarks = state.bookmarks.filter((item) => item.id !== bookmarkId);
   await persistBookmarks(nextBookmarks, t("收藏已删除。"));
+}
+
+async function handleToggleFolder(folderPath) {
+  await requireUnlockedSession(t("管理收藏前，先在当前页输入主密码解锁。"));
+
+  if (state.collapsedFolders.has(folderPath)) {
+    state.collapsedFolders.delete(folderPath);
+  } else {
+    state.collapsedFolders.add(folderPath);
+  }
+
+  renderView();
 }
 
 async function handleUnlockSubmit(event) {

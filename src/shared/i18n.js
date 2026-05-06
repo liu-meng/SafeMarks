@@ -199,10 +199,14 @@ const EN_TRANSLATIONS = Object.freeze({
     "Unlock first to view full details and edit or delete bookmarks.",
   "解锁后这里会显示紧凑的收藏维护视图。":
     "A compact bookmark maintenance view appears here after unlocking.",
+  "解锁后这里会显示按目录分组的收藏维护视图。":
+    "A folder-grouped bookmark management view appears here after unlocking.",
   "正在按标题、URL、目录和备注筛选收藏。":
     "Filtering bookmarks by title, URL, folder, and note.",
   "紧凑视图已按保存时间倒序展示，可直接在当前页编辑或删除。":
     "The compact view is sorted by saved time in descending order, and you can edit or delete bookmarks directly here.",
+  "目录树默认折叠，收藏按保存时间倒序展示，可直接在当前页编辑或删除。":
+    "Folders are collapsed by default, and bookmarks remain sorted by saved time in descending order for direct editing or deletion.",
   "还没有收藏，先在 popup 保存当前页。": "No bookmarks yet. Save the current page in the popup first.",
   "管理收藏前，先在当前页输入主密码解锁。":
     "Before managing bookmarks, enter your master password on this page to unlock.",

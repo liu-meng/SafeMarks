@@ -90,7 +90,8 @@ const state = {
   editingBookmarkId: null,
   detailBookmarkId: null,
   folderPanelOpen: false,
-  collapsedFolders: new Set()
+  collapsedFolders: new Set(),
+  knownFolderPaths: new Set()
 };
 
 function parseReturnWindowId() {
@@ -424,6 +425,31 @@ function countTreeBookmarks(node) {
   return total;
 }
 
+function collectFolderPaths(node, paths = new Set()) {
+  for (const child of node.children.values()) {
+    paths.add(child.path);
+    collectFolderPaths(child, paths);
+  }
+
+  return paths;
+}
+
+function syncCollapsedFolderState(tree) {
+  const currentFolderPaths = collectFolderPaths(tree);
+  const nextCollapsedFolders = new Set(
+    [...state.collapsedFolders].filter((folderPath) => currentFolderPaths.has(folderPath))
+  );
+
+  for (const folderPath of currentFolderPaths) {
+    if (!state.knownFolderPaths.has(folderPath)) {
+      nextCollapsedFolders.add(folderPath);
+    }
+  }
+
+  state.collapsedFolders = nextCollapsedFolders;
+  state.knownFolderPaths = currentFolderPaths;
+}
+
 function sortFolderNodes(nodes) {
   return [...nodes].sort((left, right) => left.name.localeCompare(right.name, getLocaleTag()));
 }
@@ -688,6 +714,7 @@ function resetUnlockedState() {
   state.bookmarks = [];
   state.query = "";
   state.collapsedFolders = new Set();
+  state.knownFolderPaths = new Set();
   elements.searchInput.value = "";
   resetSaveForm();
 }
@@ -707,11 +734,19 @@ function renderBookmarks() {
     ? t("没有匹配的收藏。")
     : t("还没有收藏，先把当前页加入保险库。");
   elements.bookmarkList.replaceChildren();
+
   if (filtered.length === 0) {
+    if (!query) {
+      state.collapsedFolders = new Set();
+      state.knownFolderPaths = new Set();
+    }
     return;
   }
 
   const tree = buildBookmarkTree(filtered);
+  if (!query) {
+    syncCollapsedFolderState(tree);
+  }
   appendTreeContent(elements.bookmarkList, tree, Boolean(query));
 }
 
