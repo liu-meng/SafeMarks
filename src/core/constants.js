@@ -1,5 +1,5 @@
-export const AUTO_LOCK_OPTIONS = [5, 15, 30];
-export const DEFAULT_AUTO_LOCK_MINUTES = 15;
+export const AUTO_LOCK_OPTIONS = [1, 5, 15, 30];
+export const DEFAULT_AUTO_LOCK_MINUTES = 5;
 export const STORAGE_KEYS = ["version", "salt", "auth", "vault", "settings", "meta"];
 export const FOLDER_CATALOG_STORAGE_KEY = "folderCatalog";
 export const PENDING_QUICK_CAPTURES_STORAGE_KEY = "pendingQuickCaptures";

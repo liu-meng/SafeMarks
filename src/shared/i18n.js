@@ -29,6 +29,7 @@ const EN_TRANSLATIONS = Object.freeze({
   "主密码": "Master Password",
   "确认主密码": "Confirm Master Password",
   "自动锁定": "Auto Lock",
+  "1 分钟": "1 minute",
   "5 分钟": "5 minutes",
   "15 分钟": "15 minutes",
   "30 分钟": "30 minutes",

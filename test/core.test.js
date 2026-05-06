@@ -23,11 +23,15 @@ import {
   queueCurrentPageQuickCapture,
   queueQuickCaptureBookmark
 } from "../src/core/quick-capture.js";
+import { createSessionRecord } from "../src/core/session.js";
 import {
   getFolderCatalogFromBookmarks,
   syncFolderCatalogFromBookmarks
 } from "../src/core/folder-catalog.js";
-import { normalizeVaultRecord } from "../src/core/validation.js";
+import {
+  normalizeAutoLockMinutes,
+  normalizeVaultRecord
+} from "../src/core/validation.js";
 import {
   LANGUAGE_PREFERENCES,
   initializeI18n,
@@ -228,6 +232,22 @@ test("vault validation accepts legacy records without bookmark count metadata", 
   });
 
   assert.equal(normalized.meta.bookmarkCount, null);
+});
+
+test("auto-lock supports 1 minute and falls back to the new 5 minute default", () => {
+  assert.equal(normalizeAutoLockMinutes(1), 1);
+  assert.equal(normalizeAutoLockMinutes(999), 5);
+});
+
+test("session creation uses the 5 minute default when auto-lock is omitted", () => {
+  const session = createSessionRecord({
+    encodedKey: "encoded-key",
+    now: 1_000
+  });
+
+  assert.equal(session.autoLockMinutes, 5);
+  assert.equal(session.lastActivityAt, 1_000);
+  assert.equal(session.expiresAt, 301_000);
 });
 
 test("vault presence detection treats legacy or partial vault data as initialized", () => {
