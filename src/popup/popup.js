@@ -113,6 +113,31 @@ function setMessage(text, tone = "info") {
   elements.message.className = `message message-${tone}`;
 }
 
+async function copyTextToClipboard(text) {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.setAttribute("readonly", "true");
+  textarea.style.position = "fixed";
+  textarea.style.opacity = "0";
+  textarea.style.pointerEvents = "none";
+  document.body.append(textarea);
+  textarea.select();
+
+  try {
+    const copied = document.execCommand("copy");
+    if (!copied) {
+      throw new Error(t("复制失败，请稍后重试。"));
+    }
+  } finally {
+    textarea.remove();
+  }
+}
+
 function getBookmarkCount(record = state.record) {
   return Number.isInteger(record?.meta?.bookmarkCount)
     ? record.meta.bookmarkCount
@@ -334,6 +359,23 @@ function createBookmarkItem(bookmark) {
     });
   });
 
+  const copyButton = document.createElement("button");
+  copyButton.type = "button";
+  copyButton.className = "bookmark-action-button";
+  copyButton.textContent = t("复制");
+  copyButton.addEventListener("click", () => {
+    copyTextToClipboard(bookmark.url)
+      .then(() => {
+        setMessage(t("已复制 URL。"), "success");
+      })
+      .catch((error) => {
+        setMessage(
+          error instanceof Error ? error.message : t("复制失败，请稍后重试。"),
+          "error"
+        );
+      });
+  });
+
   const deleteButton = document.createElement("button");
   deleteButton.type = "button";
   deleteButton.className = "bookmark-delete-button";
@@ -371,7 +413,7 @@ function createBookmarkItem(bookmark) {
       });
 
   titleMain.append(faviconShell, titleLink);
-  actionGroup.append(detailButton, editButton, deleteButton);
+  actionGroup.append(detailButton, editButton, copyButton, deleteButton);
   titleRow.append(titleMain);
   item.append(titleRow, urlLine, meta, actionGroup);
 

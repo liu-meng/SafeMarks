@@ -143,6 +143,7 @@ const EN_TRANSLATIONS = Object.freeze({
   "收起详情": "Hide Details",
   "查看详情": "View Details",
   "编辑": "Edit",
+  "复制": "Copy",
   "删除": "Delete",
   "{folderPath} · 保存于 {timestamp}": "{folderPath} · Saved {timestamp}",
   "保存于 {timestamp}": "Saved {timestamp}",
@@ -309,7 +310,9 @@ const EN_TRANSLATIONS = Object.freeze({
     "Only regular web pages can be saved. Browser internal pages are not supported.",
   "主密码不正确。": "Incorrect master password.",
   "URL 不能为空。": "URL cannot be empty.",
-  "仅支持保存 http 或 https 页面。": "Only http and https pages can be saved."
+  "仅支持保存 http 或 https 页面。": "Only http and https pages can be saved.",
+  "已复制 URL。": "URL copied.",
+  "复制失败，请稍后重试。": "Copy failed. Try again later."
 });
 
 function getChromeStorage() {

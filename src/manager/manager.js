@@ -83,6 +83,31 @@ function setMessage(text, tone = "info") {
   elements.message.className = `message message-${tone}`;
 }
 
+async function copyTextToClipboard(text) {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.setAttribute("readonly", "true");
+  textarea.style.position = "fixed";
+  textarea.style.opacity = "0";
+  textarea.style.pointerEvents = "none";
+  document.body.append(textarea);
+  textarea.select();
+
+  try {
+    const copied = document.execCommand("copy");
+    if (!copied) {
+      throw new Error(t("复制失败，请稍后重试。"));
+    }
+  } finally {
+    textarea.remove();
+  }
+}
+
 function formatTimestamp(timestamp) {
   return formatDateTime(timestamp, {
     month: "short",
@@ -341,6 +366,10 @@ function createManagerRow(bookmark) {
   actions.dataset.label = t("操作");
   actions.append(
     createActionButton(t("编辑"), "manager-action-button", () => handleStartEdit(bookmark.id)),
+    createActionButton(t("复制"), "manager-action-button", async () => {
+      await copyTextToClipboard(bookmark.url);
+      setMessage(t("已复制 URL。"), "success");
+    }),
     createActionButton(t("删除"), "manager-delete-button", () => handleDeleteBookmark(bookmark.id))
   );
 
