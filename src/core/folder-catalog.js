@@ -5,6 +5,27 @@ export function getFolderCatalogFromBookmarks(bookmarks = []) {
   return normalizeFolderCatalog(bookmarks.map((bookmark) => bookmark.folderPath));
 }
 
+export function removeFolderTreeFromBookmarks(bookmarks = [], folderPath) {
+  const normalizedFolderPath = normalizeFolderPath(folderPath);
+  if (!normalizedFolderPath) {
+    return {
+      nextBookmarks: [...bookmarks],
+      removedCount: 0
+    };
+  }
+
+  const folderPrefix = `${normalizedFolderPath}/`;
+  const nextBookmarks = bookmarks.filter((bookmark) => (
+    bookmark.folderPath !== normalizedFolderPath
+      && !bookmark.folderPath.startsWith(folderPrefix)
+  ));
+
+  return {
+    nextBookmarks,
+    removedCount: bookmarks.length - nextBookmarks.length
+  };
+}
+
 export async function syncFolderCatalogFromBookmarks(bookmarks = []) {
   const catalog = getFolderCatalogFromBookmarks(bookmarks);
   await saveFolderCatalog(catalog);

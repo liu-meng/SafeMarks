@@ -207,6 +207,8 @@ const EN_TRANSLATIONS = Object.freeze({
     "The compact view is sorted by saved time in descending order, and you can edit or delete bookmarks directly here.",
   "目录树默认折叠，收藏按保存时间倒序展示，可直接在当前页编辑或删除。":
     "Folders are collapsed by default, and bookmarks remain sorted by saved time in descending order for direct editing or deletion.",
+  "删除文件夹": "Delete Folder",
+  "请先清空搜索，再删除文件夹": "Clear the search before deleting a folder.",
   "还没有收藏，先在 popup 保存当前页。": "No bookmarks yet. Save the current page in the popup first.",
   "管理收藏前，先在当前页输入主密码解锁。":
     "Before managing bookmarks, enter your master password on this page to unlock.",
@@ -215,8 +217,14 @@ const EN_TRANSLATIONS = Object.freeze({
     "Before editing bookmarks, enter your master password on this page to unlock.",
   "删除收藏前，先在当前页输入主密码解锁。":
     "Before deleting bookmarks, enter your master password on this page to unlock.",
+  "删除文件夹前，先在当前页输入主密码解锁。":
+    "Before deleting a folder, enter your master password on this page to unlock.",
+  "要删除的文件夹不存在。": "The folder to delete does not exist.",
+  "确认删除文件夹“{folderPath}”及其子目录中的 {count} 条收藏？":
+    "Delete folder “{folderPath}” and {count} bookmarks in its subfolders?",
   "已解锁收藏管理页。": "Bookmark manager unlocked.",
   "当前会话已锁定。": "Current session locked.",
+  "文件夹已删除。": "Folder deleted.",
   "打开 SafeMarks": "Open SafeMarks",
   "打开扩展 popup，继续解锁、搜索或保存当前页。":
     "Open the extension popup to unlock, search, or save the current page.",

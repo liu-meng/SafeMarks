@@ -26,6 +26,7 @@ import {
 import { createSessionRecord } from "../src/core/session.js";
 import {
   getFolderCatalogFromBookmarks,
+  removeFolderTreeFromBookmarks,
   syncFolderCatalogFromBookmarks
 } from "../src/core/folder-catalog.js";
 import {
@@ -669,6 +670,58 @@ test("folder catalog deduplicates and sorts existing folder paths", () => {
   ]);
 
   assert.deepEqual(catalog, ["Personal", "Work/API"]);
+});
+
+test("removeFolderTreeFromBookmarks deletes a top-level folder and all descendants", () => {
+  const bookmarks = [
+    { id: "1", folderPath: "Work" },
+    { id: "2", folderPath: "Work/API" },
+    { id: "3", folderPath: "Work/API/Auth" },
+    { id: "4", folderPath: "Personal" },
+    { id: "5", folderPath: "" }
+  ];
+
+  const result = removeFolderTreeFromBookmarks(bookmarks, "Work");
+
+  assert.equal(result.removedCount, 3);
+  assert.deepEqual(
+    result.nextBookmarks.map((bookmark) => bookmark.id),
+    ["4", "5"]
+  );
+});
+
+test("removeFolderTreeFromBookmarks deletes only the targeted nested subtree", () => {
+  const bookmarks = [
+    { id: "1", folderPath: "Work" },
+    { id: "2", folderPath: "Work/API" },
+    { id: "3", folderPath: "Work/API/Auth" },
+    { id: "4", folderPath: "Work/Docs" },
+    { id: "5", folderPath: "Personal" }
+  ];
+
+  const result = removeFolderTreeFromBookmarks(bookmarks, "Work/API");
+
+  assert.equal(result.removedCount, 2);
+  assert.deepEqual(
+    result.nextBookmarks.map((bookmark) => bookmark.id),
+    ["1", "4", "5"]
+  );
+});
+
+test("removeFolderTreeFromBookmarks respects folder path boundaries", () => {
+  const bookmarks = [
+    { id: "1", folderPath: "Work" },
+    { id: "2", folderPath: "Workshop" },
+    { id: "3", folderPath: "Work/Docs" }
+  ];
+
+  const result = removeFolderTreeFromBookmarks(bookmarks, "Work");
+
+  assert.equal(result.removedCount, 2);
+  assert.deepEqual(
+    result.nextBookmarks.map((bookmark) => bookmark.id),
+    ["2"]
+  );
 });
 
 test("queued quick capture adds its folder path into folder catalog", async () => {

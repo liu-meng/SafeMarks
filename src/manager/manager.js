@@ -1,5 +1,8 @@
 import { getBookmarkSearchResults } from "../core/bookmark-search.js";
-import { syncFolderCatalogFromBookmarks } from "../core/folder-catalog.js";
+import {
+  removeFolderTreeFromBookmarks,
+  syncFolderCatalogFromBookmarks
+} from "../core/folder-catalog.js";
 import { flushPendingQuickCaptures } from "../core/quick-capture.js";
 import { loadVaultRecord, saveVaultRecord } from "../core/storage.js";
 import {
@@ -456,6 +459,9 @@ function createFolderGroup(node, queryActive) {
 
   const expanded = queryActive || !state.collapsedFolders.has(node.path);
 
+  const header = document.createElement("div");
+  header.className = "manager-folder-header";
+
   const toggle = document.createElement("button");
   toggle.type = "button";
   toggle.className = "bookmark-folder-toggle manager-folder-toggle";
@@ -486,7 +492,23 @@ function createFolderGroup(node, queryActive) {
 
   folderMain.append(folderTitle, folderMeta);
   toggle.append(folderMain, folderCaret);
-  group.append(toggle);
+
+  const deleteFolderButton = document.createElement("button");
+  deleteFolderButton.type = "button";
+  deleteFolderButton.className = "manager-delete-button manager-folder-delete-button";
+  deleteFolderButton.textContent = t("删除文件夹");
+  deleteFolderButton.disabled = queryActive;
+  if (queryActive) {
+    deleteFolderButton.title = t("请先清空搜索，再删除文件夹");
+  }
+  deleteFolderButton.addEventListener("click", () => {
+    handleDeleteFolder(node.path).catch((error) => {
+      setMessage(error instanceof Error ? error.message : String(error), "error");
+    });
+  });
+
+  header.append(toggle, deleteFolderButton);
+  group.append(header);
 
   const nestedList = document.createElement("ul");
   nestedList.className = "bookmark-list manager-bookmark-list bookmark-nested-list manager-nested-list";
@@ -705,6 +727,34 @@ async function handleDeleteBookmark(bookmarkId) {
 
   const nextBookmarks = state.bookmarks.filter((item) => item.id !== bookmarkId);
   await persistBookmarks(nextBookmarks, t("收藏已删除。"));
+}
+
+async function handleDeleteFolder(folderPath) {
+  await requireUnlockedSession(t("删除文件夹前，先在当前页输入主密码解锁。"));
+
+  if (state.query.trim()) {
+    throw new Error(t("请先清空搜索，再删除文件夹"));
+  }
+
+  const { nextBookmarks, removedCount } = removeFolderTreeFromBookmarks(
+    state.bookmarks,
+    folderPath
+  );
+  if (removedCount === 0) {
+    throw new Error(t("要删除的文件夹不存在。"));
+  }
+
+  const confirmed = window.confirm(
+    t("确认删除文件夹“{folderPath}”及其子目录中的 {count} 条收藏？", {
+      folderPath,
+      count: removedCount
+    })
+  );
+  if (!confirmed) {
+    return;
+  }
+
+  await persistBookmarks(nextBookmarks, t("文件夹已删除。"));
 }
 
 async function handleToggleFolder(folderPath) {
