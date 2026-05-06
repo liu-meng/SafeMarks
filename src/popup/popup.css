@@ -91,6 +91,145 @@ body {
   border-color: rgba(18, 101, 109, 0.22);
 }
 
+.folder-tree-select-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.folder-tree-select-trigger {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--text);
+  text-align: left;
+}
+
+.folder-tree-select-trigger:focus {
+  outline: 2px solid rgba(18, 101, 109, 0.18);
+  outline-offset: 1px;
+  border-color: var(--accent);
+}
+
+.folder-tree-select-trigger:disabled,
+.folder-tree-select-clear:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.folder-tree-select-trigger-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.folder-tree-select-trigger-label {
+  font-weight: 600;
+  word-break: break-word;
+}
+
+.folder-tree-select-trigger-copy {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.folder-tree-select-trigger-caret {
+  flex-shrink: 0;
+  color: var(--accent);
+  font-size: 14px;
+  line-height: 1;
+}
+
+.folder-tree-select-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid rgba(18, 101, 109, 0.14);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.76);
+}
+
+.folder-tree-select-create {
+  gap: 7px;
+}
+
+.folder-tree-select-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.folder-tree-select-section-title {
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.folder-tree-select-clear {
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid rgba(18, 101, 109, 0.16);
+  border-radius: 999px;
+  background: rgba(18, 101, 109, 0.08);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.folder-tree-select-clear.is-selected,
+.folder-tree-select-clear:hover {
+  background: rgba(18, 101, 109, 0.14);
+  border-color: rgba(18, 101, 109, 0.24);
+}
+
+.folder-tree-select-tree {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 240px;
+  overflow: auto;
+}
+
+.folder-tree-select-node,
+.folder-tree-select-children {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.folder-tree-select-children {
+  margin-left: 14px;
+  padding-left: 12px;
+  border-left: 1px solid rgba(18, 101, 109, 0.12);
+}
+
+.folder-tree-select-option {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid rgba(18, 101, 109, 0.14);
+  border-radius: 12px;
+  background: rgba(18, 101, 109, 0.06);
+  color: var(--text);
+  font-weight: 600;
+  text-align: left;
+  word-break: break-word;
+}
+
+.folder-tree-select-option:hover,
+.folder-tree-select-option.is-selected {
+  background: rgba(18, 101, 109, 0.14);
+  border-color: rgba(18, 101, 109, 0.24);
+}
+
 .bookmark-title-row {
   display: flex;
   align-items: center;

@@ -1,5 +1,8 @@
 import { flushPendingQuickCaptures } from "../core/quick-capture.js";
-import { syncFolderCatalogFromBookmarks } from "../core/folder-catalog.js";
+import {
+  getFolderCatalogFromBookmarks,
+  syncFolderCatalogFromBookmarks
+} from "../core/folder-catalog.js";
 import {
   hasStoredVaultRecord,
   loadPendingQuickCaptures,
@@ -9,6 +12,7 @@ import {
 import { sessionLock, sessionSet, sessionStatus, sessionTouch } from "../core/session.js";
 import { getBookmarkSearchResults } from "../core/bookmark-search.js";
 import { getCurrentPageCandidate, getPageFaviconUrl } from "../core/tabs.js";
+import { normalizeFolderPath } from "../core/validation.js";
 import {
   createBookmark,
   createVaultRecord,
@@ -54,7 +58,15 @@ const elements = {
   addForm: document.querySelector("#add-form"),
   addTitle: document.querySelector("#bookmark-title"),
   addUrl: document.querySelector("#bookmark-url"),
+  folderSelect: document.querySelector("[data-folder-select]"),
+  addFolderTrigger: document.querySelector("#bookmark-folder-trigger"),
+  addFolderTriggerLabel: document.querySelector("#bookmark-folder-trigger-label"),
+  addFolderTriggerCaret: document.querySelector("#bookmark-folder-trigger-caret"),
+  addFolderPanel: document.querySelector("#bookmark-folder-panel"),
   addFolderPath: document.querySelector("#bookmark-folder-path"),
+  addFolderTree: document.querySelector("#bookmark-folder-tree"),
+  addFolderClear: document.querySelector("#bookmark-folder-clear"),
+  addFolderEmpty: document.querySelector("#bookmark-folder-empty"),
   addNote: document.querySelector("#bookmark-note"),
   addSubmit: document.querySelector("#add-submit"),
   pageStatus: document.querySelector("#page-status"),
@@ -77,6 +89,7 @@ const state = {
   saveMode: "create",
   editingBookmarkId: null,
   detailBookmarkId: null,
+  folderPanelOpen: false,
   collapsedFolders: new Set()
 };
 
@@ -198,11 +211,108 @@ function clearLockTimer() {
   }
 }
 
+function getSelectedFolderPath() {
+  return normalizeFolderPath(elements.addFolderPath.value);
+}
+
+function buildFolderPathTree(folderPaths) {
+  const root = createFolderNode();
+
+  for (const folderPath of folderPaths) {
+    const segments = folderPath.split("/");
+    let node = root;
+
+    for (const segment of segments) {
+      const path = node.path ? `${node.path}/${segment}` : segment;
+      if (!node.children.has(segment)) {
+        node.children.set(segment, createFolderNode(segment, path));
+      }
+
+      node = node.children.get(segment);
+    }
+  }
+
+  return root;
+}
+
+function setFolderPanelOpen(open) {
+  const nextOpen = Boolean(open) && !elements.addFolderTrigger.disabled;
+  state.folderPanelOpen = nextOpen;
+  elements.addFolderPanel.hidden = !nextOpen;
+  elements.addFolderTrigger.setAttribute("aria-expanded", String(nextOpen));
+  elements.addFolderTriggerCaret.textContent = nextOpen ? "^" : "v";
+}
+
+function syncFolderPickerDisabledState() {
+  const disabled = elements.addFolderPath.disabled;
+  elements.addFolderTrigger.disabled = disabled;
+  elements.addFolderClear.disabled = disabled;
+
+  if (disabled) {
+    setFolderPanelOpen(false);
+  }
+}
+
+function appendFolderTreeOptions(container, node, selectedPath) {
+  for (const child of sortFolderNodes(node.children.values())) {
+    const item = document.createElement("div");
+    item.className = "folder-tree-select-node";
+
+    const option = document.createElement("button");
+    option.type = "button";
+    option.className = "folder-tree-select-option";
+    option.title = child.path;
+    if (child.path === selectedPath) {
+      option.classList.add("is-selected");
+    }
+    option.addEventListener("click", () => {
+      elements.addFolderPath.value = child.path;
+      renderFolderTreeSelect();
+      setFolderPanelOpen(false);
+      elements.addFolderTrigger.focus();
+    });
+
+    const label = document.createElement("span");
+    label.className = "folder-tree-select-option-label";
+    label.textContent = child.name;
+    option.append(label);
+    item.append(option);
+
+    if (child.children.size > 0) {
+      const children = document.createElement("div");
+      children.className = "folder-tree-select-children";
+      appendFolderTreeOptions(children, child, selectedPath);
+      item.append(children);
+    }
+
+    container.append(item);
+  }
+}
+
+function renderFolderTreeSelect() {
+  const selectedPath = getSelectedFolderPath();
+  const folderCatalog = getFolderCatalogFromBookmarks(state.bookmarks);
+
+  elements.addFolderTriggerLabel.textContent = selectedPath || t("未分类");
+  elements.addFolderTree.replaceChildren();
+  elements.addFolderClear.classList.toggle("is-selected", !selectedPath);
+  elements.addFolderTree.hidden = folderCatalog.length === 0;
+  elements.addFolderEmpty.hidden = folderCatalog.length !== 0;
+
+  if (folderCatalog.length === 0) {
+    return;
+  }
+
+  const tree = buildFolderPathTree(folderCatalog);
+  appendFolderTreeOptions(elements.addFolderTree, tree, selectedPath);
+}
+
 function resetSaveForm() {
   state.savePanelOpen = false;
   state.saveMode = "create";
   state.editingBookmarkId = null;
   elements.savePanel.hidden = true;
+  setFolderPanelOpen(false);
   elements.savePanelTitle.textContent = t("新建收藏");
   elements.addTitle.value = "";
   elements.addUrl.value = "";
@@ -215,6 +325,8 @@ function resetSaveForm() {
   elements.addSubmit.disabled = true;
   elements.addSubmit.textContent = t("完成");
   elements.pageStatus.textContent = t("点击“保存当前页”后读取当前页面信息。");
+  syncFolderPickerDisabledState();
+  renderFolderTreeSelect();
 }
 
 function openSaveForm(mode, bookmark = null) {
@@ -222,6 +334,7 @@ function openSaveForm(mode, bookmark = null) {
   state.saveMode = mode;
   state.editingBookmarkId = bookmark?.id ?? null;
   elements.savePanel.hidden = false;
+  setFolderPanelOpen(false);
   elements.addTitle.disabled = false;
   elements.addUrl.disabled = false;
   elements.addFolderPath.disabled = false;
@@ -236,6 +349,8 @@ function openSaveForm(mode, bookmark = null) {
     elements.addFolderPath.value = bookmark.folderPath;
     elements.addNote.value = bookmark.note;
     elements.pageStatus.textContent = t("可修改标题、URL、分类目录和备注，保存后会覆盖原收藏。");
+    syncFolderPickerDisabledState();
+    renderFolderTreeSelect();
     return;
   }
 
@@ -244,6 +359,8 @@ function openSaveForm(mode, bookmark = null) {
   elements.addFolderPath.value = "";
   elements.addNote.value = "";
   elements.pageStatus.textContent = t("正在读取当前页面信息...");
+  syncFolderPickerDisabledState();
+  renderFolderTreeSelect();
 }
 
 function setSaveTriggerFavicon(faviconUrl) {
@@ -635,6 +752,8 @@ async function refreshCurrentPageCandidate() {
     elements.addNote.disabled = true;
     elements.addSubmit.disabled = true;
     elements.pageStatus.textContent = candidate.reason;
+    syncFolderPickerDisabledState();
+    renderFolderTreeSelect();
     return;
   }
 
@@ -646,6 +765,8 @@ async function refreshCurrentPageCandidate() {
   elements.addTitle.value = candidate.title;
   elements.addUrl.value = candidate.url;
   elements.pageStatus.textContent = t("可按原生收藏习惯修改标题或 URL 后再保存。");
+  syncFolderPickerDisabledState();
+  renderFolderTreeSelect();
 }
 
 async function touchSessionState() {
@@ -936,6 +1057,50 @@ async function handleDeleteBookmark(bookmarkId) {
   await persistBookmarks(nextBookmarks, t("收藏已删除。"));
 }
 
+function handleFolderTriggerClick() {
+  const nextOpen = !state.folderPanelOpen;
+  setFolderPanelOpen(nextOpen);
+
+  if (nextOpen) {
+    renderFolderTreeSelect();
+    elements.addFolderPath.focus();
+    elements.addFolderPath.select();
+  }
+}
+
+function handleFolderClear() {
+  elements.addFolderPath.value = "";
+  renderFolderTreeSelect();
+  setFolderPanelOpen(false);
+  elements.addFolderTrigger.focus();
+}
+
+function handleFolderInput() {
+  renderFolderTreeSelect();
+}
+
+function handleFolderPickerKeydown(event) {
+  if (event.key !== "Escape") {
+    return;
+  }
+
+  event.preventDefault();
+  setFolderPanelOpen(false);
+  elements.addFolderTrigger.focus();
+}
+
+function handleDocumentClick(event) {
+  if (!state.folderPanelOpen) {
+    return;
+  }
+
+  if (elements.folderSelect.contains(event.target)) {
+    return;
+  }
+
+  setFolderPanelOpen(false);
+}
+
 function handleSearchInput() {
   state.query = elements.searchInput.value;
   renderBookmarks();
@@ -956,10 +1121,15 @@ elements.openManager.addEventListener("click", () => chrome.tabs.create({ url: M
 elements.saveCurrentPage.addEventListener("click", handleOpenSavePanel);
 elements.saveCurrentPageFavicon.addEventListener("error", () => setSaveTriggerFavicon(""));
 elements.closeSavePanel.addEventListener("click", resetSaveForm);
+elements.addFolderTrigger.addEventListener("click", handleFolderTriggerClick);
+elements.addFolderPath.addEventListener("input", handleFolderInput);
+elements.addFolderPanel.addEventListener("keydown", handleFolderPickerKeydown);
+elements.addFolderClear.addEventListener("click", handleFolderClear);
 elements.addForm.addEventListener("submit", handleAddSubmit);
 elements.searchInput.addEventListener("input", handleSearchInput);
 elements.lockNow.addEventListener("click", handleManualLock);
 
+document.addEventListener("click", handleDocumentClick);
 window.addEventListener("beforeunload", resetUnlockedState);
 window.addEventListener("focus", () => {
   refreshPendingQuickCaptureStatus().catch(() => {});

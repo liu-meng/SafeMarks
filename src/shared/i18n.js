@@ -47,7 +47,11 @@ const EN_TRANSLATIONS = Object.freeze({
   "取消": "Cancel",
   "标题": "Title",
   "分类目录": "Folder",
+  "选择已有目录或新建目录": "Choose an existing folder or create a new one",
+  "新建目录": "Create Folder",
   "可选，例如 工作/项目A": "Optional, for example Work/Project A",
+  "还没有现有目录，可直接在上方输入新目录。":
+    "No existing folders yet. Enter a new folder above to create one.",
   "备注": "Note",
   "可选，记录这条收藏的用途或补充信息":
     "Optional, describe the purpose of this bookmark or add extra context",
@@ -125,7 +129,7 @@ const EN_TRANSLATIONS = Object.freeze({
   "关闭": "Close",
   "正在准备当前页面信息...": "Preparing current page details...",
   "读取中...": "Loading...",
-  "已有目录": "Existing Folder",
+  "已有目录": "Existing Folders",
   "未分类 / 手动输入新目录": "Unfiled / Enter a new folder manually",
   "可新增，例如 工作/项目A": "Optional new folder, for example Work/Project A",
   "正在读取可选目录...": "Loading available folders...",
