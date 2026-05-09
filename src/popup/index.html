@@ -25,7 +25,7 @@
       <section id="setup-screen" class="panel panel-pad stack" hidden>
         <div class="stack panel-tight">
           <h2>首次创建保险库</h2>
-          <p class="helper-text">创建后会立即加密一个空收藏库；常规保存会直接写入密文，锁定状态下的快速收藏会先本地暂存，待解锁后导入保险库。</p>
+          <p class="helper-text">先创建本地加密保险库；如果你已经在浏览器里积累了收藏，也可以直接去欢迎引导继续导入。</p>
         </div>
         <form id="setup-form" class="stack">
           <label class="label">
@@ -45,7 +45,10 @@
               <option value="30">30 分钟</option>
             </select>
           </label>
-          <button class="button" type="submit">创建保险库</button>
+          <div class="button-row">
+            <button class="button" type="submit">创建保险库</button>
+            <button id="open-import-onboarding" class="button-secondary" type="button">先导入浏览器书签</button>
+          </div>
         </form>
       </section>
 
@@ -188,7 +191,12 @@
             <span>搜索收藏</span>
             <input id="search-input" class="input" type="search" placeholder="按标题、URL、目录或备注搜索" />
           </label>
-          <div id="empty-state" class="empty-state">还没有收藏，先把当前页加入保险库。</div>
+          <div id="empty-state" class="empty-state stack">
+            <p id="empty-state-copy">还没有收藏，先把当前页加入保险库。</p>
+            <div id="empty-state-actions" class="button-row" hidden>
+              <button id="empty-state-import" class="button-secondary" type="button">导入浏览器书签</button>
+            </div>
+          </div>
           <ul id="bookmark-list" class="bookmark-list"></ul>
         </section>
       </section>

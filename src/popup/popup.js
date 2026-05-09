@@ -29,6 +29,7 @@ import {
 } from "../shared/i18n.js";
 
 const MANAGER_PAGE_URL = chrome.runtime.getURL("src/manager/index.html");
+const WELCOME_OPTIONS_URL = chrome.runtime.getURL("src/options/index.html?flow=welcome");
 
 await initializeI18n();
 localizeDocument();
@@ -43,6 +44,7 @@ const elements = {
   setupPassword: document.querySelector("#setup-password"),
   setupConfirm: document.querySelector("#setup-confirm"),
   setupAutolock: document.querySelector("#setup-autolock"),
+  openImportOnboarding: document.querySelector("#open-import-onboarding"),
   unlockForm: document.querySelector("#unlock-form"),
   unlockPassword: document.querySelector("#unlock-password"),
   lockedBookmarkCount: document.querySelector("#locked-bookmark-count"),
@@ -73,6 +75,9 @@ const elements = {
   bookmarkCount: document.querySelector("#bookmark-count"),
   bookmarkList: document.querySelector("#bookmark-list"),
   emptyState: document.querySelector("#empty-state"),
+  emptyStateCopy: document.querySelector("#empty-state-copy"),
+  emptyStateActions: document.querySelector("#empty-state-actions"),
+  emptyStateImport: document.querySelector("#empty-state-import"),
   sessionBadge: document.querySelector("#session-badge"),
   lockNow: document.querySelector("#lock-now")
 };
@@ -210,6 +215,10 @@ function clearLockTimer() {
     window.clearTimeout(state.lockTimer);
     state.lockTimer = null;
   }
+}
+
+function openImportOnboarding() {
+  chrome.tabs.create({ url: WELCOME_OPTIONS_URL });
 }
 
 function getSelectedFolderPath() {
@@ -722,6 +731,7 @@ function resetUnlockedState() {
 function renderBookmarks() {
   const query = state.query.trim();
   const filtered = getBookmarkSearchResults(state.bookmarks, query);
+  const showImportAction = !query && state.bookmarks.length === 0;
 
   elements.bookmarkCount.textContent = query
     ? t("{visibleCount} / {totalCount} 条收藏", {
@@ -730,9 +740,12 @@ function renderBookmarks() {
       })
     : t("{count} 条收藏", { count: state.bookmarks.length });
   elements.emptyState.hidden = filtered.length > 0;
-  elements.emptyState.textContent = query
+  elements.emptyStateCopy.textContent = query
     ? t("没有匹配的收藏。")
-    : t("还没有收藏，先把当前页加入保险库。");
+    : showImportAction
+      ? t("还没有收藏，可先保存当前页，或去设置页导入浏览器书签。")
+      : t("还没有收藏，先把当前页加入保险库。");
+  elements.emptyStateActions.hidden = !showImportAction;
   elements.bookmarkList.replaceChildren();
 
   if (filtered.length === 0) {
@@ -789,7 +802,7 @@ async function refreshCurrentPageCandidate() {
     elements.pageStatus.textContent = candidate.reason;
     syncFolderPickerDisabledState();
     renderFolderTreeSelect();
-    return;
+    return candidate;
   }
 
   elements.addTitle.disabled = false;
@@ -802,6 +815,22 @@ async function refreshCurrentPageCandidate() {
   elements.pageStatus.textContent = t("可按原生收藏习惯修改标题或 URL 后再保存。");
   syncFolderPickerDisabledState();
   renderFolderTreeSelect();
+  return candidate;
+}
+
+async function openCurrentPageSavePanel({ touchSession = true } = {}) {
+  if (touchSession) {
+    await touchSessionState();
+  }
+
+  openSaveForm("create");
+  const candidate = await refreshCurrentPageCandidate();
+  if (!elements.addTitle.disabled) {
+    elements.addTitle.focus();
+    elements.addTitle.select();
+  }
+
+  return candidate;
 }
 
 async function touchSessionState() {
@@ -934,9 +963,15 @@ async function handleSetupSubmit(event) {
     ));
 
     await showUnlocked(record, created.encodedKey, [], session);
+    const candidate = await openCurrentPageSavePanel({ touchSession: false });
     elements.setupForm.reset();
     elements.setupAutolock.value = String(record.settings.autoLockMinutes);
-    setMessage(t("保险库已创建并完成解锁。"), "success");
+    setMessage(
+      candidate?.supported
+        ? t("保险库已创建并完成解锁，已为你打开当前页保存面板。")
+        : t("保险库已创建并完成解锁。当前页面暂时无法直接保存，可切到普通网页后再试，或先导入浏览器书签。"),
+      "success"
+    );
   } catch (error) {
     setMessage(error instanceof Error ? error.message : String(error), "error");
   }
@@ -985,13 +1020,7 @@ async function handleUnlockSubmit(event) {
 
 async function handleOpenSavePanel() {
   try {
-    await touchSessionState();
-    openSaveForm("create");
-    await refreshCurrentPageCandidate();
-    if (!elements.addTitle.disabled) {
-      elements.addTitle.focus();
-      elements.addTitle.select();
-    }
+    await openCurrentPageSavePanel();
   } catch {
     // touchSessionState 已处理提示与锁定状态
   }
@@ -1150,9 +1179,11 @@ async function handleManualLock() {
 }
 
 elements.setupForm.addEventListener("submit", handleSetupSubmit);
+elements.openImportOnboarding.addEventListener("click", openImportOnboarding);
 elements.unlockForm.addEventListener("submit", handleUnlockSubmit);
 elements.openSettings.addEventListener("click", () => chrome.runtime.openOptionsPage());
 elements.openManager.addEventListener("click", () => chrome.tabs.create({ url: MANAGER_PAGE_URL }));
+elements.emptyStateImport.addEventListener("click", openImportOnboarding);
 elements.saveCurrentPage.addEventListener("click", handleOpenSavePanel);
 elements.saveCurrentPageFavicon.addEventListener("error", () => setSaveTriggerFavicon(""));
 elements.closeSavePanel.addEventListener("click", resetSaveForm);

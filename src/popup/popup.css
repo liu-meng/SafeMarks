@@ -27,6 +27,10 @@ body {
   gap: 4px;
 }
 
+.empty-state p {
+  margin: 0;
+}
+
 .save-entry {
   gap: 10px;
 }
