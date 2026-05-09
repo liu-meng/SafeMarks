@@ -31,8 +31,11 @@ import {
 const MANAGER_PAGE_URL = chrome.runtime.getURL("src/manager/index.html");
 const WELCOME_OPTIONS_URL = chrome.runtime.getURL("src/options/index.html?flow=welcome");
 
-await initializeI18n();
-localizeDocument();
+try {
+  await initializeI18n();
+} finally {
+  localizeDocument();
+}
 
 const elements = {
   message: document.querySelector("#global-message"),
@@ -968,8 +971,8 @@ async function handleSetupSubmit(event) {
     elements.setupAutolock.value = String(record.settings.autoLockMinutes);
     setMessage(
       candidate?.supported
-        ? t("保险库已创建并完成解锁，已为你打开当前页保存面板。")
-        : t("保险库已创建并完成解锁。当前页面暂时无法直接保存，可切到普通网页后再试，或先导入浏览器书签。"),
+        ? t("已创建并解锁。当前页保存面板已打开。")
+        : t("已创建并解锁。当前页面暂时不能直接保存，可先导入浏览器书签，或切到普通网页后再试。"),
       "success"
     );
   } catch (error) {

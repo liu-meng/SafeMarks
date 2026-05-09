@@ -21,23 +21,26 @@ const EN_TRANSLATIONS = Object.freeze({
   "SafeMarks 快速收藏": "SafeMarks Quick Capture",
   "加密收藏夹": "Encrypted Bookmarks",
   "设置": "Settings",
-  "先创建本地加密保险库；如果你已经在浏览器里积累了收藏，也可以直接去欢迎引导继续导入。":
-    "Create your local encrypted vault first. If you already have bookmarks in your browser, jump to the onboarding flow and continue importing them there.",
-  "先导入浏览器书签": "Import Browser Bookmarks First",
+  "在这里解锁、保存当前页和快速查找；整理收藏请到管理页。":
+    "Unlock, save the current page, and search quickly here. Use the manager to organize bookmarks.",
+  "先设置主密码": "Set Your Master Password",
+  "设置完成后就能保存当前页，也可以继续导入现有书签。":
+    "After setup, you can save the current page right away or continue importing existing bookmarks.",
+  "导入现有书签": "Import Existing Bookmarks",
   "首次开始": "Getting Started",
   "欢迎使用 SafeMarks": "Welcome to SafeMarks",
-  "先创建本地加密保险库，再把现有浏览器书签导入进来。":
-    "Create your local encrypted vault first, then bring in your existing browser bookmarks.",
+  "先设置主密码，再把浏览器里已有的书签带进来。":
+    "Set a master password first, then bring in the bookmarks you already have in your browser.",
   "第 1 步 / 2": "Step 1 of 2",
-  "第 1 步：创建本地加密保险库": "Step 1: Create Your Local Encrypted Vault",
-  "创建后当前页会自动解锁，下一步即可导入现有书签。":
-    "After creation, this page unlocks automatically so you can import your existing bookmarks next.",
-  "从浏览器导入收藏": "Import Bookmarks from Browser",
-  "当前页已解锁。下一步建议把浏览器里已有的收藏导入 SafeMarks，并保留原有目录结构。":
-    "This page is unlocked. The next recommended step is to import your browser bookmarks into SafeMarks and keep the original folder structure.",
-  "现在可以开始使用 SafeMarks 了": "SafeMarks Is Ready to Use",
-  "现有收藏已就绪。接下来可在收藏管理页继续整理，也可通过工具栏 popup 保存当前页。":
-    "Your existing bookmarks are ready. Next, keep organizing them in the manager or save the current page from the toolbar popup.",
+  "第 1 步：设置主密码": "Step 1: Set a Master Password",
+  "设置完成后会自动解锁，下一步可导入现有书签。":
+    "After setup, this page unlocks automatically and you can import existing bookmarks next.",
+  "第 2 步：导入现有书签": "Step 2: Import Existing Bookmarks",
+  "当前已解锁。建议先导入浏览器书签，原有目录会一起保留。":
+    "You are unlocked. Import browser bookmarks first and keep the original folders.",
+  "开始整理你的书签": "Start Organizing Your Bookmarks",
+  "现有书签已准备好。接下来可以去管理页整理，或用工具栏保存当前页。":
+    "Your bookmarks are ready. Next, organize them in the manager or save the current page from the toolbar.",
   "popup 只保留解锁、保存当前页和快速查找；完整维护请到管理页。":
     "The popup is limited to unlock, save current page, and quick search. Use the manager for full maintenance.",
   "首次创建保险库": "Create Your Vault",
@@ -191,12 +194,12 @@ const EN_TRANSLATIONS = Object.freeze({
   "主密码不能为空。": "Master password cannot be empty.",
   "两次输入的主密码不一致。": "The two master password entries do not match.",
   "保险库已创建并完成解锁。": "Vault created and unlocked.",
-  "保险库已创建并完成解锁，已为你打开当前页保存面板。":
-    "Vault created and unlocked. The save panel for the current page is now open.",
-  "保险库已创建并完成解锁。下一步建议从浏览器导入收藏。":
-    "Vault created and unlocked. The next recommended step is to import bookmarks from the browser.",
-  "保险库已创建并完成解锁。当前页面暂时无法直接保存，可切到普通网页后再试，或先导入浏览器书签。":
-    "Vault created and unlocked. The current page cannot be saved directly right now. Switch to a normal web page and try again, or import browser bookmarks first.",
+  "已创建并解锁。当前页保存面板已打开。":
+    "Created and unlocked. The current page save panel is open.",
+  "已创建并解锁。下一步建议导入浏览器书签。":
+    "Created and unlocked. The next recommended step is to import browser bookmarks.",
+  "已创建并解锁。当前页面暂时不能直接保存，可先导入浏览器书签，或切到普通网页后再试。":
+    "Created and unlocked. This page cannot be saved directly right now. Import browser bookmarks first, or switch to a normal web page and try again.",
   "尚未初始化，请先创建主密码。": "Not initialized yet. Create a master password first.",
   "已解锁保险库。": "Vault unlocked.",
   "已解锁保险库，并已导入 {count} 条快速收藏。":
@@ -285,7 +288,18 @@ const EN_TRANSLATIONS = Object.freeze({
   "先创建你的保险库": "Create Your Vault First",
   "创建本地加密保险库后，即可在当前页导入浏览器书签或恢复加密备份。":
     "After creating your local encrypted vault, you can import browser bookmarks or restore an encrypted backup on this page.",
+  "下一步": "Next",
   "继续完成欢迎设置": "Continue Setup",
+  "现在可以把浏览器里已有的书签带进来了。":
+    "You can now bring in the bookmarks you already have in your browser.",
+  "当前已锁定。先在本页解锁，再继续导入。":
+    "You are locked. Unlock on this page first, then continue importing.",
+  "准备好了": "Ready",
+  "可以开始用了": "You Are Ready to Start",
+  "数据已经准备好。先在本页解锁，再继续整理收藏。":
+    "Your data is ready. Unlock on this page first, then continue organizing bookmarks.",
+  "设置好主密码后，就能在当前页导入浏览器书签或恢复加密备份。":
+    "After setting a master password, you can import browser bookmarks or restore an encrypted backup on this page.",
   "下一步：导入现有浏览器书签": "Next: Import Existing Browser Bookmarks",
   "保险库已经就绪。建议现在把浏览器里已有的收藏带进来。":
     "Your vault is ready. It is recommended to bring in the bookmarks already stored in your browser now.",
@@ -564,7 +578,7 @@ function localizeTextNode(node) {
 }
 
 export function localizeDocument(root = document) {
-  root.documentElement?.setAttribute("lang", getLocaleTag());
+  const documentElement = root.documentElement;
   if (typeof root.title === "string" && root.title) {
     root.title = t(root.title);
   }
@@ -606,4 +620,7 @@ export function localizeDocument(root = document) {
     }
     localizeTextNode(currentNode);
   }
+
+  documentElement?.setAttribute("lang", getLocaleTag());
+  documentElement?.removeAttribute("data-i18n-pending");
 }

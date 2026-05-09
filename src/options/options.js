@@ -44,8 +44,11 @@ const WELCOME_STAGES = Object.freeze({
   COMPLETE: "complete"
 });
 
-await initializeI18n();
-localizeDocument();
+try {
+  await initializeI18n();
+} finally {
+  localizeDocument();
+}
 
 const SHORTCUT_COMMANDS = [
   {
@@ -205,38 +208,38 @@ function renderWelcomePanel(record) {
     elements.welcomeTitle.textContent =
       state.flowMode === FLOW_MODES.WELCOME
         ? t("欢迎使用 SafeMarks")
-        : t("先创建你的保险库");
+        : t("先设置主密码");
     elements.welcomeDescription.textContent =
       state.flowMode === FLOW_MODES.WELCOME
-        ? t("先创建本地加密保险库，再把现有浏览器书签导入进来。")
-        : t("创建本地加密保险库后，即可在当前页导入浏览器书签或恢复加密备份。");
+        ? t("先设置主密码，再把浏览器里已有的书签带进来。")
+        : t("设置好主密码后，就能在当前页导入浏览器书签或恢复加密备份。");
     elements.welcomeStepBadge.textContent = t("第 1 步 / 2");
     return;
   }
 
   if (nextStage === WELCOME_STAGES.IMPORT) {
-    elements.welcomeEyebrow.textContent = t("继续完成欢迎设置");
-    elements.welcomeTitle.textContent = t("下一步：导入现有浏览器书签");
-    elements.welcomeDescription.textContent = t("保险库已经就绪。建议现在把浏览器里已有的收藏带进来。");
+    elements.welcomeEyebrow.textContent = t("下一步");
+    elements.welcomeTitle.textContent = t("导入现有书签");
+    elements.welcomeDescription.textContent = t("现在可以把浏览器里已有的书签带进来了。");
     elements.welcomeStepBadge.textContent = t("第 2 步 / 2");
     elements.welcomeImportCopy.textContent =
       state.sessionState === "unlocked"
-        ? t("当前页已解锁。下一步建议把浏览器里已有的收藏导入 SafeMarks，并保留原有目录结构。")
-        : t("当前会话已锁定。先在本页解锁，然后继续导入浏览器收藏。");
+        ? t("当前已解锁。建议先导入浏览器书签，原有目录会一起保留。")
+        : t("当前已锁定。先在本页解锁，再继续导入。");
     return;
   }
 
-  elements.welcomeEyebrow.textContent = t("已完成");
-  elements.welcomeTitle.textContent = t("现在可以开始使用 SafeMarks 了");
+  elements.welcomeEyebrow.textContent = t("准备好了");
+  elements.welcomeTitle.textContent = t("可以开始用了");
   elements.welcomeDescription.textContent =
     state.sessionState === "unlocked"
-      ? t("现有收藏已就绪。接下来可在收藏管理页继续整理，也可通过工具栏 popup 保存当前页。")
-      : t("保险库数据已准备好。先在本页解锁，然后再去收藏管理页继续整理。");
+      ? t("现有书签已准备好。接下来可以去管理页整理，或用工具栏保存当前页。")
+      : t("数据已经准备好。先在本页解锁，再继续整理收藏。");
   elements.welcomeStepBadge.textContent = t("已完成");
   elements.welcomeCompleteCopy.textContent =
     state.sessionState === "unlocked"
-      ? t("现有收藏已就绪。接下来可在收藏管理页继续整理，也可通过工具栏 popup 保存当前页。")
-      : t("保险库数据已准备好。先在本页解锁，然后再去收藏管理页继续整理。");
+      ? t("现有书签已准备好。接下来可以去管理页整理，或用工具栏保存当前页。")
+      : t("数据已经准备好。先在本页解锁，再继续整理收藏。");
 }
 
 function openManagerPage() {
@@ -596,7 +599,7 @@ async function handleWelcomeSetupSubmit(event) {
     ));
 
     resetWelcomeSetupForm();
-    await refreshView(t("保险库已创建并完成解锁。下一步建议从浏览器导入收藏。"));
+    await refreshView(t("已创建并解锁。下一步建议导入浏览器书签。"));
   } catch (error) {
     setMessage(error instanceof Error ? error.message : String(error), "error");
   }

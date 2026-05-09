@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en" data-i18n-pending="true">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -17,15 +17,15 @@
           </div>
           <button id="open-settings" class="ghost-button" type="button">设置</button>
         </div>
-        <p class="subtitle">popup 只保留解锁、保存当前页和快速查找；完整维护请到管理页。</p>
+        <p class="subtitle">在这里解锁、保存当前页和快速查找；整理收藏请到管理页。</p>
       </section>
 
       <p id="global-message" class="message message-info" hidden></p>
 
       <section id="setup-screen" class="panel panel-pad stack" hidden>
         <div class="stack panel-tight">
-          <h2>首次创建保险库</h2>
-          <p class="helper-text">先创建本地加密保险库；如果你已经在浏览器里积累了收藏，也可以直接去欢迎引导继续导入。</p>
+          <h2>先设置主密码</h2>
+          <p class="helper-text">设置完成后就能保存当前页，也可以继续导入现有书签。</p>
         </div>
         <form id="setup-form" class="stack">
           <label class="label">
@@ -40,14 +40,14 @@
             <span>自动锁定</span>
             <select id="setup-autolock" class="select">
               <option value="1">1 分钟</option>
-              <option value="5" selected>5 分钟</option>
-              <option value="15">15 分钟</option>
+              <option value="5">5 分钟</option>
+              <option value="15" selected>15 分钟</option>
               <option value="30">30 分钟</option>
             </select>
           </label>
           <div class="button-row">
             <button class="button" type="submit">创建保险库</button>
-            <button id="open-import-onboarding" class="button-secondary" type="button">先导入浏览器书签</button>
+            <button id="open-import-onboarding" class="button-secondary" type="button">导入现有书签</button>
           </div>
         </form>
       </section>

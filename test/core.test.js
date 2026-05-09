@@ -36,6 +36,7 @@ import {
 import {
   LANGUAGE_PREFERENCES,
   initializeI18n,
+  localizeDocument,
   resolveLocaleFromPreference,
   setLanguagePreference
 } from "../src/shared/i18n.js";
@@ -128,6 +129,53 @@ test("i18n initialization supports promise-style storage APIs", async () => {
     } else {
       globalThis.chrome = originalChrome;
     }
+  }
+});
+
+test("localizeDocument reveals the page only after localization is applied", async () => {
+  const originalNodeFilter = globalThis.NodeFilter;
+  globalThis.NodeFilter = {
+    SHOW_TEXT: 4,
+    FILTER_REJECT: 2,
+    FILTER_ACCEPT: 1
+  };
+
+  const documentElement = {
+    attributes: new Map([["data-i18n-pending", "true"]]),
+    setAttribute(name, value) {
+      this.attributes.set(name, value);
+    },
+    removeAttribute(name) {
+      this.attributes.delete(name);
+    },
+    getAttribute(name) {
+      return this.attributes.get(name) ?? null;
+    }
+  };
+
+  const fakeRoot = {
+    documentElement,
+    title: "",
+    body: {},
+    querySelectorAll() {
+      return [];
+    },
+    createTreeWalker() {
+      return {
+        nextNode() {
+          return null;
+        }
+      };
+    }
+  };
+
+  try {
+    await setLanguagePreference(LANGUAGE_PREFERENCES.ENGLISH);
+    localizeDocument(fakeRoot);
+    assert.equal(documentElement.getAttribute("lang"), LANGUAGE_PREFERENCES.ENGLISH);
+    assert.equal(documentElement.getAttribute("data-i18n-pending"), null);
+  } finally {
+    globalThis.NodeFilter = originalNodeFilter;
   }
 });
 
@@ -235,20 +283,20 @@ test("vault validation accepts legacy records without bookmark count metadata", 
   assert.equal(normalized.meta.bookmarkCount, null);
 });
 
-test("auto-lock supports 1 minute and falls back to the new 5 minute default", () => {
+test("auto-lock supports 1 minute and falls back to the new 15 minute default", () => {
   assert.equal(normalizeAutoLockMinutes(1), 1);
-  assert.equal(normalizeAutoLockMinutes(999), 5);
+  assert.equal(normalizeAutoLockMinutes(999), 15);
 });
 
-test("session creation uses the 5 minute default when auto-lock is omitted", () => {
+test("session creation uses the 15 minute default when auto-lock is omitted", () => {
   const session = createSessionRecord({
     encodedKey: "encoded-key",
     now: 1_000
   });
 
-  assert.equal(session.autoLockMinutes, 5);
+  assert.equal(session.autoLockMinutes, 15);
   assert.equal(session.lastActivityAt, 1_000);
-  assert.equal(session.expiresAt, 301_000);
+  assert.equal(session.expiresAt, 901_000);
 });
 
 test("vault presence detection treats legacy or partial vault data as initialized", () => {

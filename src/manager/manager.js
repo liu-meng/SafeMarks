@@ -19,8 +19,11 @@ import {
 } from "../core/vault.js";
 import { formatDateTime, initializeI18n, localizeDocument, t } from "../shared/i18n.js";
 
-await initializeI18n();
-localizeDocument();
+try {
+  await initializeI18n();
+} finally {
+  localizeDocument();
+}
 
 const elements = {
   hero: document.querySelector("#manager-hero"),

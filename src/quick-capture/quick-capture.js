@@ -10,8 +10,11 @@ import {
 import { syncFolderCatalogFromBookmarks } from "../core/folder-catalog.js";
 import { initializeI18n, localizeDocument, t } from "../shared/i18n.js";
 
-await initializeI18n();
-localizeDocument();
+try {
+  await initializeI18n();
+} finally {
+  localizeDocument();
+}
 
 const elements = {
   mode: document.querySelector("#capture-mode"),
