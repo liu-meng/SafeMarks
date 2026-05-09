@@ -17,6 +17,7 @@ import {
 } from "../core/session.js";
 import { flattenNativeBookmarkTree } from "../core/native-bookmarks.js";
 import {
+  createVaultRecord,
   decryptBookmarksWithEncodedKey,
   encryptBookmarksWithEncodedKey,
   unlockVaultRecord
@@ -32,6 +33,16 @@ import {
 
 const MANAGER_PAGE_URL = chrome.runtime.getURL("src/manager/index.html");
 const SHORTCUT_SETTINGS_URL = "chrome://extensions/shortcuts";
+const FLOW_MODES = Object.freeze({
+  NONE: "none",
+  WELCOME: "welcome"
+});
+const WELCOME_STAGES = Object.freeze({
+  HIDDEN: "hidden",
+  SETUP: "setup",
+  IMPORT: "import",
+  COMPLETE: "complete"
+});
 
 await initializeI18n();
 localizeDocument();
@@ -60,6 +71,23 @@ const SHORTCUT_COMMANDS = [
 ];
 
 const elements = {
+  welcomePanel: document.querySelector("#welcome-panel"),
+  welcomeEyebrow: document.querySelector("#welcome-eyebrow"),
+  welcomeTitle: document.querySelector("#welcome-title"),
+  welcomeDescription: document.querySelector("#welcome-description"),
+  welcomeStepBadge: document.querySelector("#welcome-step-badge"),
+  welcomeSetupStage: document.querySelector("#welcome-setup-stage"),
+  welcomeSetupForm: document.querySelector("#welcome-setup-form"),
+  welcomeSetupPassword: document.querySelector("#welcome-setup-password"),
+  welcomeSetupConfirm: document.querySelector("#welcome-setup-confirm"),
+  welcomeSetupAutolock: document.querySelector("#welcome-setup-autolock"),
+  welcomeImportBackup: document.querySelector("#welcome-import-backup"),
+  welcomeImportStage: document.querySelector("#welcome-import-stage"),
+  welcomeImportCopy: document.querySelector("#welcome-import-copy"),
+  welcomeImportTrigger: document.querySelector("#welcome-import-trigger"),
+  welcomeCompleteStage: document.querySelector("#welcome-complete-stage"),
+  welcomeCompleteCopy: document.querySelector("#welcome-complete-copy"),
+  welcomeCompleteOpenManager: document.querySelector("#welcome-complete-open-manager"),
   optionsHero: document.querySelector("#options-hero"),
   openManager: document.querySelector("#open-manager"),
   message: document.querySelector("#options-message"),
@@ -95,9 +123,17 @@ const elements = {
 
 const state = {
   hasVault: false,
+  flowMode: parseFlowMode(),
   sessionState: "locked",
-  pendingAction: null
+  pendingAction: null,
+  welcomeStage: WELCOME_STAGES.HIDDEN
 };
+
+function parseFlowMode() {
+  return new URLSearchParams(window.location.search).get("flow") === FLOW_MODES.WELCOME
+    ? FLOW_MODES.WELCOME
+    : FLOW_MODES.NONE;
+}
 
 function getUnlockedSession(response) {
   if (response?.status !== "unlocked" || !response.session) {
@@ -118,6 +154,89 @@ function setMessage(text, tone = "info") {
   elements.message.hidden = false;
   elements.message.textContent = text;
   elements.message.className = `message message-${tone}`;
+}
+
+function getVaultBookmarkCount(record) {
+  return Number.isInteger(record?.meta?.bookmarkCount) ? record.meta.bookmarkCount : 0;
+}
+
+function resetWelcomeSetupForm() {
+  elements.welcomeSetupForm.reset();
+  elements.welcomeSetupAutolock.value = "5";
+}
+
+function getWelcomeStage(record) {
+  if (!record) {
+    return WELCOME_STAGES.SETUP;
+  }
+
+  if (state.flowMode !== FLOW_MODES.WELCOME) {
+    return WELCOME_STAGES.HIDDEN;
+  }
+
+  return getVaultBookmarkCount(record) > 0
+    ? WELCOME_STAGES.COMPLETE
+    : WELCOME_STAGES.IMPORT;
+}
+
+function renderWelcomePanel(record) {
+  const nextStage = getWelcomeStage(record);
+  const previousStage = state.welcomeStage;
+  state.welcomeStage = nextStage;
+
+  elements.welcomePanel.hidden = nextStage === WELCOME_STAGES.HIDDEN;
+  elements.welcomeSetupStage.hidden = nextStage !== WELCOME_STAGES.SETUP;
+  elements.welcomeImportStage.hidden = nextStage !== WELCOME_STAGES.IMPORT;
+  elements.welcomeCompleteStage.hidden = nextStage !== WELCOME_STAGES.COMPLETE;
+
+  if (nextStage === WELCOME_STAGES.HIDDEN) {
+    return;
+  }
+
+  if (nextStage === WELCOME_STAGES.SETUP && previousStage !== WELCOME_STAGES.SETUP) {
+    resetWelcomeSetupForm();
+  }
+
+  if (nextStage === WELCOME_STAGES.SETUP) {
+    elements.welcomeEyebrow.textContent =
+      state.flowMode === FLOW_MODES.WELCOME
+        ? t("首次开始")
+        : t("当前还没有保险库");
+    elements.welcomeTitle.textContent =
+      state.flowMode === FLOW_MODES.WELCOME
+        ? t("欢迎使用 SafeMarks")
+        : t("先创建你的保险库");
+    elements.welcomeDescription.textContent =
+      state.flowMode === FLOW_MODES.WELCOME
+        ? t("先创建本地加密保险库，再把现有浏览器书签导入进来。")
+        : t("创建本地加密保险库后，即可在当前页导入浏览器书签或恢复加密备份。");
+    elements.welcomeStepBadge.textContent = t("第 1 步 / 2");
+    return;
+  }
+
+  if (nextStage === WELCOME_STAGES.IMPORT) {
+    elements.welcomeEyebrow.textContent = t("继续完成欢迎设置");
+    elements.welcomeTitle.textContent = t("下一步：导入现有浏览器书签");
+    elements.welcomeDescription.textContent = t("保险库已经就绪。建议现在把浏览器里已有的收藏带进来。");
+    elements.welcomeStepBadge.textContent = t("第 2 步 / 2");
+    elements.welcomeImportCopy.textContent =
+      state.sessionState === "unlocked"
+        ? t("当前页已解锁。下一步建议把浏览器里已有的收藏导入 SafeMarks，并保留原有目录结构。")
+        : t("当前会话已锁定。先在本页解锁，然后继续导入浏览器收藏。");
+    return;
+  }
+
+  elements.welcomeEyebrow.textContent = t("已完成");
+  elements.welcomeTitle.textContent = t("现在可以开始使用 SafeMarks 了");
+  elements.welcomeDescription.textContent =
+    state.sessionState === "unlocked"
+      ? t("现有收藏已就绪。接下来可在收藏管理页继续整理，也可通过工具栏 popup 保存当前页。")
+      : t("保险库数据已准备好。先在本页解锁，然后再去收藏管理页继续整理。");
+  elements.welcomeStepBadge.textContent = t("已完成");
+  elements.welcomeCompleteCopy.textContent =
+    state.sessionState === "unlocked"
+      ? t("现有收藏已就绪。接下来可在收藏管理页继续整理，也可通过工具栏 popup 保存当前页。")
+      : t("保险库数据已准备好。先在本页解锁，然后再去收藏管理页继续整理。");
 }
 
 function openManagerPage() {
@@ -394,6 +513,8 @@ async function refreshView(message = "") {
     setSessionState(status.status);
   }
 
+  renderWelcomePanel(record);
+
   if (message) {
     setMessage(
       importedCount > 0
@@ -448,6 +569,37 @@ async function runNativeImport(record, encodedKey) {
     }),
     "success"
   );
+}
+
+async function handleWelcomeSetupSubmit(event) {
+  event.preventDefault();
+
+  const password = elements.welcomeSetupPassword.value;
+  const confirm = elements.welcomeSetupConfirm.value;
+
+  if (!password) {
+    setMessage(t("主密码不能为空。"), "error");
+    return;
+  }
+
+  if (password !== confirm) {
+    setMessage(t("两次输入的主密码不一致。"), "error");
+    return;
+  }
+
+  try {
+    const created = await createVaultRecord(password, elements.welcomeSetupAutolock.value);
+    const record = await saveVaultRecord(created.record);
+    getUnlockedSession(await sessionSet(
+      created.encodedKey,
+      record.settings.autoLockMinutes
+    ));
+
+    resetWelcomeSetupForm();
+    await refreshView(t("保险库已创建并完成解锁。下一步建议从浏览器导入收藏。"));
+  } catch (error) {
+    setMessage(error instanceof Error ? error.message : String(error), "error");
+  }
 }
 
 async function handleSaveSettings() {
@@ -545,6 +697,7 @@ async function handleImportNativeBookmarks() {
     if (touched.status !== "unlocked" || !touched.session) {
       state.pendingAction = "import-native";
       setSessionState(touched.status);
+      renderWelcomePanel(record);
       focusUnlockPanel(t("从浏览器导入前，先在当前页输入主密码解锁。解锁后会自动继续导入。"));
       setMessage(t("从浏览器导入需要先解锁当前保险库。"), "info");
       return;
@@ -631,6 +784,10 @@ async function handleResetConfirm(event) {
   }
 }
 
+elements.welcomeSetupForm.addEventListener("submit", handleWelcomeSetupSubmit);
+elements.welcomeImportBackup.addEventListener("click", () => elements.importFile.click());
+elements.welcomeImportTrigger.addEventListener("click", handleImportNativeBookmarks);
+elements.welcomeCompleteOpenManager.addEventListener("click", openManagerPage);
 elements.openManager.addEventListener("click", openManagerPage);
 elements.saveLanguage.addEventListener("click", () => {
   handleSaveLanguage().catch((error) => {

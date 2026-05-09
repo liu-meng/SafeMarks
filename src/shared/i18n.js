@@ -21,6 +21,20 @@ const EN_TRANSLATIONS = Object.freeze({
   "SafeMarks 快速收藏": "SafeMarks Quick Capture",
   "加密收藏夹": "Encrypted Bookmarks",
   "设置": "Settings",
+  "首次开始": "Getting Started",
+  "欢迎使用 SafeMarks": "Welcome to SafeMarks",
+  "先创建本地加密保险库，再把现有浏览器书签导入进来。":
+    "Create your local encrypted vault first, then bring in your existing browser bookmarks.",
+  "第 1 步 / 2": "Step 1 of 2",
+  "第 1 步：创建本地加密保险库": "Step 1: Create Your Local Encrypted Vault",
+  "创建后当前页会自动解锁，下一步即可导入现有书签。":
+    "After creation, this page unlocks automatically so you can import your existing bookmarks next.",
+  "从浏览器导入收藏": "Import Bookmarks from Browser",
+  "当前页已解锁。下一步建议把浏览器里已有的收藏导入 SafeMarks，并保留原有目录结构。":
+    "This page is unlocked. The next recommended step is to import your browser bookmarks into SafeMarks and keep the original folder structure.",
+  "现在可以开始使用 SafeMarks 了": "SafeMarks Is Ready to Use",
+  "现有收藏已就绪。接下来可在收藏管理页继续整理，也可通过工具栏 popup 保存当前页。":
+    "Your existing bookmarks are ready. Next, keep organizing them in the manager or save the current page from the toolbar popup.",
   "popup 只保留解锁、保存当前页和快速查找；完整维护请到管理页。":
     "The popup is limited to unlock, save current page, and quick search. Use the manager for full maintenance.",
   "首次创建保险库": "Create Your Vault",
@@ -88,6 +102,8 @@ const EN_TRANSLATIONS = Object.freeze({
   "把书签栏、其他书签等原生目录完整带入 SafeMarks，并保留原有目录和分类。":
     "Import native browser folders such as the bookmarks bar and other bookmarks into SafeMarks while preserving the original structure.",
   "保险库状态": "Vault Status",
+  "如果当前还没有保险库，可直接在本页创建主密码；如果已有加密备份，也可以先导入再解锁。":
+    "If there is no vault yet, create a master password on this page directly. If you already have an encrypted backup, import it first and then unlock.",
   "首次初始化可先在 popup 创建主密码；如果已有加密备份，也可以先导入再在当前页解锁。":
     "For first-time setup, create a master password in the popup. If you already have an encrypted backup, import it first and then unlock here.",
   "初始化状态": "Initialization",
@@ -170,6 +186,8 @@ const EN_TRANSLATIONS = Object.freeze({
   "主密码不能为空。": "Master password cannot be empty.",
   "两次输入的主密码不一致。": "The two master password entries do not match.",
   "保险库已创建并完成解锁。": "Vault created and unlocked.",
+  "保险库已创建并完成解锁。下一步建议从浏览器导入收藏。":
+    "Vault created and unlocked. The next recommended step is to import bookmarks from the browser.",
   "尚未初始化，请先创建主密码。": "Not initialized yet. Create a master password first.",
   "已解锁保险库。": "Vault unlocked.",
   "已解锁保险库，并已导入 {count} 条快速收藏。":
@@ -254,6 +272,20 @@ const EN_TRANSLATIONS = Object.freeze({
   "已初始化": "Initialized",
   "已锁定": "Locked",
   "已过期": "Expired",
+  "当前还没有保险库": "No Vault Yet",
+  "先创建你的保险库": "Create Your Vault First",
+  "创建本地加密保险库后，即可在当前页导入浏览器书签或恢复加密备份。":
+    "After creating your local encrypted vault, you can import browser bookmarks or restore an encrypted backup on this page.",
+  "继续完成欢迎设置": "Continue Setup",
+  "下一步：导入现有浏览器书签": "Next: Import Existing Browser Bookmarks",
+  "保险库已经就绪。建议现在把浏览器里已有的收藏带进来。":
+    "Your vault is ready. It is recommended to bring in the bookmarks already stored in your browser now.",
+  "第 2 步 / 2": "Step 2 of 2",
+  "当前会话已锁定。先在本页解锁，然后继续导入浏览器收藏。":
+    "The current session is locked. Unlock on this page first, then continue importing browser bookmarks.",
+  "已完成": "Completed",
+  "保险库数据已准备好。先在本页解锁，然后再去收藏管理页继续整理。":
+    "Your vault data is ready. Unlock on this page first, then continue organizing it in the bookmark manager.",
   "当前会话已过期，请在这里重新输入主密码后继续操作。":
     "The current session has expired. Enter your master password here to continue.",
   "当前环境不支持权限申请。": "Permission requests are not supported in this environment.",

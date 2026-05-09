@@ -9,6 +9,87 @@
   </head>
   <body>
     <main class="app-shell options-shell stack">
+      <section id="welcome-panel" class="panel panel-pad stack welcome-panel" hidden>
+        <div class="section-head welcome-head">
+          <div class="stack panel-tight">
+            <p id="welcome-eyebrow" class="eyebrow">首次开始</p>
+            <h2 id="welcome-title">欢迎使用 SafeMarks</h2>
+            <p id="welcome-description" class="subtitle">
+              先创建本地加密保险库，再把现有浏览器书签导入进来。
+            </p>
+          </div>
+          <p id="welcome-step-badge" class="badge welcome-step-badge">第 1 步 / 2</p>
+        </div>
+
+        <section id="welcome-setup-stage" class="stack welcome-stage" hidden>
+          <div class="stack panel-tight">
+            <h3>第 1 步：创建本地加密保险库</h3>
+            <p class="helper-text">创建后当前页会自动解锁，下一步即可导入现有书签。</p>
+          </div>
+          <form id="welcome-setup-form" class="stack welcome-setup-form">
+            <label class="label">
+              <span>主密码</span>
+              <input
+                id="welcome-setup-password"
+                class="input"
+                type="password"
+                autocomplete="new-password"
+                required
+              />
+            </label>
+            <label class="label">
+              <span>确认主密码</span>
+              <input
+                id="welcome-setup-confirm"
+                class="input"
+                type="password"
+                autocomplete="new-password"
+                required
+              />
+            </label>
+            <label class="label">
+              <span>自动锁定</span>
+              <select id="welcome-setup-autolock" class="select">
+                <option value="1">1 分钟</option>
+                <option value="5" selected>5 分钟</option>
+                <option value="15">15 分钟</option>
+                <option value="30">30 分钟</option>
+              </select>
+            </label>
+            <div class="button-row">
+              <button class="button" type="submit">创建保险库</button>
+              <button id="welcome-import-backup" class="button-secondary" type="button">
+                导入加密 JSON 备份
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <section id="welcome-import-stage" class="stack welcome-stage" hidden>
+          <div class="stack panel-tight">
+            <h3>第 2 步：导入浏览器书签</h3>
+            <p id="welcome-import-copy" class="helper-text">
+              当前页已解锁。下一步建议把浏览器里已有的收藏导入 SafeMarks，并保留原有目录结构。
+            </p>
+          </div>
+          <div class="button-row">
+            <button id="welcome-import-trigger" class="button" type="button">从浏览器导入收藏</button>
+          </div>
+        </section>
+
+        <section id="welcome-complete-stage" class="stack welcome-stage" hidden>
+          <div class="stack panel-tight">
+            <h3>现在可以开始使用 SafeMarks 了</h3>
+            <p id="welcome-complete-copy" class="helper-text">
+              现有收藏已就绪。接下来可在收藏管理页继续整理，也可通过工具栏 popup 保存当前页。
+            </p>
+          </div>
+          <div class="button-row">
+            <button id="welcome-complete-open-manager" class="button" type="button">打开收藏管理</button>
+          </div>
+        </section>
+      </section>
+
       <section id="options-hero" class="panel panel-pad options-hero">
         <div class="stack options-hero-copy">
           <p class="eyebrow">SafeMarks</p>
@@ -78,7 +159,7 @@
           <div class="section-head">
             <div class="stack">
               <h2>保险库状态</h2>
-              <p class="helper-text">首次初始化可先在 popup 创建主密码；如果已有加密备份，也可以先导入再在当前页解锁。</p>
+              <p class="helper-text">如果当前还没有保险库，可直接在本页创建主密码；如果已有加密备份，也可以先导入再解锁。</p>
             </div>
           </div>
           <div class="status-summary">

@@ -23,6 +23,7 @@ const COMMANDS = {
 
 const PAGE_URLS = {
   manager: chrome.runtime.getURL("src/manager/index.html"),
+  optionsWelcome: chrome.runtime.getURL("src/options/index.html?flow=welcome"),
   quickCapture: chrome.runtime.getURL("src/quick-capture/index.html")
 };
 
@@ -256,8 +257,12 @@ chrome.commands.onCommand.addListener(async (command) => {
   }
 });
 
-chrome.runtime.onInstalled.addListener(() => {
+chrome.runtime.onInstalled.addListener((details) => {
   refreshActionBadge().catch(() => {});
+
+  if (details.reason === "install") {
+    chrome.tabs.create({ url: PAGE_URLS.optionsWelcome }).catch(() => {});
+  }
 });
 
 chrome.runtime.onStartup.addListener(() => {

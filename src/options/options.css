@@ -4,6 +4,35 @@
   padding-bottom: 28px;
 }
 
+.welcome-panel {
+  gap: 18px;
+  border-color: rgba(18, 101, 109, 0.14);
+  background:
+    linear-gradient(135deg, rgba(29, 122, 109, 0.14), rgba(123, 198, 180, 0.08)),
+    var(--card);
+}
+
+.welcome-head {
+  align-items: flex-start;
+}
+
+.welcome-step-badge {
+  flex-shrink: 0;
+  font-weight: 700;
+}
+
+.welcome-stage {
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.welcome-setup-form {
+  gap: 12px;
+}
+
 .options-hero {
   display: grid;
   gap: 16px;
@@ -167,6 +196,10 @@
 }
 
 @media (max-width: 720px) {
+  .welcome-head {
+    flex-direction: column;
+  }
+
   .options-hero-copy {
     display: flex;
   }
