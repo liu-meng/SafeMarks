@@ -24,17 +24,19 @@ const EN_TRANSLATIONS = Object.freeze({
   "在这里解锁、保存当前页和快速查找；整理收藏请到管理页。":
     "Unlock, save the current page, and search quickly here. Use the manager to organize bookmarks.",
   "先设置主密码": "Set Your Master Password",
-  "设置完成后就能保存当前页，也可以继续导入现有书签。":
-    "After setup, you can save the current page right away or continue importing existing bookmarks.",
+  "所有数据只保存在当前浏览器，不需要账号或云同步。":
+    "All data stays in this browser only, with no account or cloud sync required.",
+  "设置完成后就能保存当前页，也可以继续导入现有书签；主密码忘记后无法找回。":
+    "After setup, you can save the current page right away or continue importing existing bookmarks, but the master password cannot be recovered if you forget it.",
   "导入现有书签": "Import Existing Bookmarks",
   "首次开始": "Getting Started",
   "欢迎使用 SafeMarks": "Welcome to SafeMarks",
-  "先设置主密码，再把浏览器里已有的书签带进来。":
-    "Set a master password first, then bring in the bookmarks you already have in your browser.",
+  "先设置主密码，再把浏览器里已有的书签带进来；SafeMarks 不需要账号，也不提供云同步。":
+    "Set a master password first, then bring in the bookmarks you already have in your browser. SafeMarks requires no account and provides no cloud sync.",
   "第 1 步 / 2": "Step 1 of 2",
   "第 1 步：设置主密码": "Step 1: Set a Master Password",
-  "设置完成后会自动解锁，下一步可导入现有书签。":
-    "After setup, this page unlocks automatically and you can import existing bookmarks next.",
+  "数据只保存在当前浏览器；主密码忘记后无法找回。设置完成后会自动解锁，下一步可导入现有书签。":
+    "Data stays in this browser only, and the master password cannot be recovered if forgotten. After setup, this page unlocks automatically and you can import existing bookmarks next.",
   "第 2 步：导入现有书签": "Step 2: Import Existing Bookmarks",
   "当前已解锁。建议先导入浏览器书签，原有目录会一起保留。":
     "You are unlocked. Import browser bookmarks first and keep the original folders.",
@@ -101,8 +103,8 @@ const EN_TRANSLATIONS = Object.freeze({
   "保存时间": "Saved At",
   "操作": "Actions",
   "保险库设置": "Vault Settings",
-  "管理自动锁定、浏览器导入、备份恢复和数据重置；收藏维护已单独移到管理页。":
-    "Manage auto lock, browser import, backup and restore, and data reset. Bookmark maintenance has moved to the manager page.",
+  "管理本地保险库的自动锁定、浏览器导入、备份恢复和数据重置；SafeMarks 不依赖账号或云同步。":
+    "Manage auto lock, browser import, backup and restore, and reset for your local vault. SafeMarks does not rely on accounts or cloud sync.",
   "打开收藏管理": "Open Bookmark Manager",
   "解锁并继续": "Unlock and Continue",
   "快速导入": "Quick Import",
@@ -131,8 +133,8 @@ const EN_TRANSLATIONS = Object.freeze({
   "超时时间": "Timeout",
   "保存设置": "Save Settings",
   "备份与恢复": "Backup and Restore",
-  "加密备份始终可用；明文导出需要当前会话已经解锁。浏览器导入入口已移到上方。":
-    "Encrypted backups are always available. Plain JSON export requires an unlocked session. Browser import is available above.",
+  "SafeMarks 不提供云同步；跨设备请使用加密 JSON 备份手动迁移，明文导出仍需要当前会话已解锁。":
+    "SafeMarks does not provide cloud sync. Use encrypted JSON backups for manual device-to-device migration, and remember plain JSON export still requires an unlocked session.",
   "导出加密 JSON": "Export Encrypted JSON",
   "导出明文 JSON": "Export Plain JSON",
   "导入加密 JSON": "Import Encrypted JSON",

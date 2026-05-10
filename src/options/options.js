@@ -211,7 +211,7 @@ function renderWelcomePanel(record) {
         : t("先设置主密码");
     elements.welcomeDescription.textContent =
       state.flowMode === FLOW_MODES.WELCOME
-        ? t("先设置主密码，再把浏览器里已有的书签带进来。")
+        ? t("先设置主密码，再把浏览器里已有的书签带进来；SafeMarks 不需要账号，也不提供云同步。")
         : t("设置好主密码后，就能在当前页导入浏览器书签或恢复加密备份。");
     elements.welcomeStepBadge.textContent = t("第 1 步 / 2");
     return;

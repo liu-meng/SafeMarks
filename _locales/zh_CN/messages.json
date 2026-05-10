@@ -3,7 +3,7 @@
     "message": "SafeMarks"
   },
   "extensionDescription": {
-    "message": "在本地加密保险库中保存和管理收藏。"
+    "message": "本地加密收藏夹，无账号、无云同步。"
   },
   "commandQuickCaptureDescription": {
     "message": "打开快速收藏页（可选择已有目录或新增目录）"
