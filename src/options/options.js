@@ -102,6 +102,7 @@ const elements = {
   languagePreference: document.querySelector("#language-preference"),
   saveLanguage: document.querySelector("#save-language"),
   settingsPanel: document.querySelector("#settings-panel"),
+  changePasswordSection: document.querySelector("#change-password-section"),
   autoLock: document.querySelector("#options-autolock"),
   saveSettings: document.querySelector("#save-settings"),
   exportEncrypted: document.querySelector("#export-encrypted"),
@@ -434,10 +435,10 @@ function setVaultStatus(initialized) {
   state.hasVault = initialized;
   elements.vaultStatus.textContent = initialized ? t("已初始化") : t("未初始化");
   elements.settingsPanel.hidden = !initialized;
+  elements.changePasswordSection.hidden = !initialized;
   elements.exportEncrypted.disabled = !initialized;
   elements.saveSettings.disabled = !initialized;
   elements.resetData.disabled = !initialized;
-  elements.changePasswordTrigger.disabled = !initialized;
   updateImportHint();
 
   if (!initialized) {
