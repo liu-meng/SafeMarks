@@ -110,3 +110,25 @@ export async function encryptBookmarksWithEncodedKey(record, bookmarks, encodedK
     meta: createVaultMeta(normalizedBookmarks)
   });
 }
+
+export async function changeVaultPassword(record, currentPassword, newPassword, newAutoLockMinutes) {
+  const unlocked = await unlockVaultRecord(record, currentPassword);
+  const saltBytes = randomBytes(16);
+  const newKey = await deriveKeyFromPassword(newPassword, saltBytes);
+
+  const nextRecord = normalizeVaultRecord({
+    ...unlocked.record,
+    salt: bytesToBase64(saltBytes),
+    auth: await encryptString(AUTH_SENTINEL, newKey),
+    vault: await encryptJson(unlocked.bookmarks, newKey),
+    settings: {
+      autoLockMinutes: normalizeAutoLockMinutes(newAutoLockMinutes ?? unlocked.record.settings.autoLockMinutes)
+    }
+  });
+
+  return {
+    record: nextRecord,
+    bookmarks: unlocked.bookmarks,
+    encodedKey: await exportKey(newKey)
+  };
+}

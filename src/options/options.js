@@ -17,6 +17,7 @@ import {
 } from "../core/session.js";
 import { flattenNativeBookmarkTree } from "../core/native-bookmarks.js";
 import {
+  changeVaultPassword,
   createVaultRecord,
   decryptBookmarksWithEncodedKey,
   encryptBookmarksWithEncodedKey,
@@ -116,6 +117,14 @@ const elements = {
   unlockPanelCopy: document.querySelector("#unlock-panel-copy"),
   unlockForm: document.querySelector("#unlock-form"),
   unlockPassword: document.querySelector("#unlock-password"),
+  changePasswordTrigger: document.querySelector("#change-password-trigger"),
+  changePasswordPanel: document.querySelector("#change-password-panel"),
+  changePasswordForm: document.querySelector("#change-password-form"),
+  changeCurrentPassword: document.querySelector("#change-current-password"),
+  changeNewPassword: document.querySelector("#change-new-password"),
+  changeConfirmPassword: document.querySelector("#change-confirm-password"),
+  changePasswordSubmit: document.querySelector("#change-password-submit"),
+  changePasswordCancel: document.querySelector("#change-password-cancel"),
   resetData: document.querySelector("#reset-data"),
   resetConfirmPanel: document.querySelector("#reset-confirm-panel"),
   resetConfirmForm: document.querySelector("#reset-confirm-form"),
@@ -378,6 +387,22 @@ function setResetConfirmVisible(visible) {
   elements.resetConfirmCancel.disabled = false;
 }
 
+function setChangePasswordVisible(visible) {
+  elements.changePasswordPanel.hidden = !visible;
+
+  if (visible) {
+    window.setTimeout(() => {
+      elements.changeCurrentPassword.focus();
+      elements.changeCurrentPassword.select();
+    }, 40);
+    return;
+  }
+
+  elements.changePasswordForm.reset();
+  elements.changePasswordSubmit.disabled = false;
+  elements.changePasswordCancel.disabled = false;
+}
+
 function setUnlockPanel(visible, copy = t("输入主密码后即可继续在设置页导入、导出或调整保险库设置。")) {
   elements.unlockPanel.hidden = !visible;
   elements.optionsHero.classList.toggle("options-hero-with-unlock", visible);
@@ -412,10 +437,12 @@ function setVaultStatus(initialized) {
   elements.exportEncrypted.disabled = !initialized;
   elements.saveSettings.disabled = !initialized;
   elements.resetData.disabled = !initialized;
+  elements.changePasswordTrigger.disabled = !initialized;
   updateImportHint();
 
   if (!initialized) {
     setUnlockPanel(false);
+    setChangePasswordVisible(false);
     setResetConfirmVisible(false);
   }
 }
@@ -743,6 +770,58 @@ async function handleUnlockSubmit(event) {
   }
 }
 
+function handleChangePassword() {
+  setChangePasswordVisible(true);
+}
+
+async function handleChangePasswordSubmit(event) {
+  event.preventDefault();
+
+  const currentPassword = elements.changeCurrentPassword.value;
+  const newPassword = elements.changeNewPassword.value;
+  const confirmPassword = elements.changeConfirmPassword.value;
+
+  if (!newPassword) {
+    setMessage(t("新密码不能为空。"), "error");
+    return;
+  }
+
+  if (newPassword !== confirmPassword) {
+    setMessage(t("两次输入的新密码不一致。"), "error");
+    return;
+  }
+
+  if (newPassword === currentPassword) {
+    setMessage(t("新密码不能与当前密码相同。"), "error");
+    return;
+  }
+
+  const record = await loadVaultRecord();
+  if (!record) {
+    throw new Error(t("当前保险库未初始化，请先创建主密码。"));
+  }
+
+  elements.changePasswordSubmit.disabled = true;
+  elements.changePasswordCancel.disabled = true;
+
+  try {
+    const changed = await changeVaultPassword(record, currentPassword, newPassword);
+    await saveVaultRecord(changed.record);
+    await syncFolderCatalogFromBookmarks(changed.bookmarks);
+    getUnlockedSession(await sessionSet(
+      changed.encodedKey,
+      changed.record.settings.autoLockMinutes
+    ));
+
+    setChangePasswordVisible(false);
+    await refreshView(t("主密码已修改。"));
+  } catch (error) {
+    elements.changePasswordSubmit.disabled = false;
+    elements.changePasswordCancel.disabled = false;
+    throw error;
+  }
+}
+
 async function handleReset() {
   setResetConfirmVisible(true);
 }
@@ -809,6 +888,15 @@ elements.openShortcutSettings.addEventListener("click", () => {
   });
 });
 elements.unlockForm.addEventListener("submit", handleUnlockSubmit);
+elements.changePasswordTrigger.addEventListener("click", handleChangePassword);
+elements.changePasswordForm.addEventListener("submit", (event) => {
+  handleChangePasswordSubmit(event).catch((error) => {
+    setMessage(error instanceof Error ? error.message : String(error), "error");
+  });
+});
+elements.changePasswordCancel.addEventListener("click", () => {
+  setChangePasswordVisible(false);
+});
 elements.resetData.addEventListener("click", handleReset);
 elements.resetConfirmForm.addEventListener("submit", (event) => {
   handleResetConfirm(event).catch((error) => {

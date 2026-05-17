@@ -218,6 +218,60 @@
       <section class="panel panel-pad stack">
         <div class="section-head">
           <div class="stack">
+            <h2>修改主密码</h2>
+            <p class="helper-text">修改后需要用新密码解锁保险库。此前导出的加密备份仍需旧密码恢复。</p>
+          </div>
+        </div>
+        <button id="change-password-trigger" class="button-secondary" type="button">修改主密码…</button>
+        <section id="change-password-panel" class="stack" hidden>
+          <form id="change-password-form" class="stack">
+            <label class="label">
+              <span>当前密码</span>
+              <input
+                id="change-current-password"
+                class="input"
+                type="password"
+                autocomplete="current-password"
+                placeholder="当前密码"
+                aria-label="当前密码"
+                required
+              />
+            </label>
+            <label class="label">
+              <span>新密码</span>
+              <input
+                id="change-new-password"
+                class="input"
+                type="password"
+                autocomplete="new-password"
+                placeholder="新密码"
+                aria-label="新密码"
+                required
+              />
+            </label>
+            <label class="label">
+              <span>确认新密码</span>
+              <input
+                id="change-confirm-password"
+                class="input"
+                type="password"
+                autocomplete="new-password"
+                placeholder="确认新密码"
+                aria-label="确认新密码"
+                required
+              />
+            </label>
+            <div class="button-row">
+              <button id="change-password-submit" class="button" type="submit">确认修改</button>
+              <button id="change-password-cancel" class="ghost-button" type="button">取消</button>
+            </div>
+          </form>
+        </section>
+      </section>
+
+      <section class="panel panel-pad stack">
+        <div class="section-head">
+          <div class="stack">
             <h2>重置</h2>
             <p class="helper-text">会删除本地所有密文和当前会话密钥，操作不可撤销。</p>
           </div>

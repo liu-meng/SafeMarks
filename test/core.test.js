@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import { base64ToBytes, bytesToBase64 } from "../src/core/base64.js";
 import {
+  changeVaultPassword,
   decryptBookmarksWithEncodedKey,
   encryptBookmarksWithEncodedKey,
   unlockVaultRecord,
@@ -843,4 +844,34 @@ test("pending quick captures are merged into the vault after unlock", async () =
   } finally {
     globalThis.chrome = originalChrome;
   }
+});
+
+test("vault password can be changed and unlocked with new password", async () => {
+  const created = await createVaultRecord("old-pass", 15);
+  const bookmarks = [
+    { id: "bm_1", url: "https://example.com", title: "Test", folderPath: "", note: "", tags: [], createdAt: 1710000000000 }
+  ];
+  const withBookmarks = await encryptBookmarksWithEncodedKey(created.record, bookmarks, created.encodedKey);
+
+  const changed = await changeVaultPassword(withBookmarks, "old-pass", "new-pass");
+  const unlocked = await unlockVaultRecord(changed.record, "new-pass");
+
+  assert.equal(unlocked.bookmarks.length, 1);
+  assert.equal(unlocked.bookmarks[0].title, "Test");
+});
+
+test("vault password change rejects wrong current password", async () => {
+  const created = await createVaultRecord("correct", 15);
+
+  await assert.rejects(
+    () => changeVaultPassword(created.record, "wrong", "new-pass"),
+    /主密码不正确|Incorrect master password/
+  );
+});
+
+test("vault password change generates new salt", async () => {
+  const created = await createVaultRecord("old-pass", 15);
+  const changed = await changeVaultPassword(created.record, "old-pass", "new-pass");
+
+  assert.notEqual(changed.record.salt, created.record.salt);
 });

@@ -386,7 +386,19 @@ const EN_TRANSLATIONS = Object.freeze({
   "URL 不能为空。": "URL cannot be empty.",
   "仅支持保存 http 或 https 页面。": "Only http and https pages can be saved.",
   "已复制 URL。": "URL copied.",
-  "复制失败，请稍后重试。": "Copy failed. Try again later."
+  "复制失败，请稍后重试。": "Copy failed. Try again later.",
+  "修改主密码": "Change Master Password",
+  "修改后需要用新密码解锁保险库。此前导出的加密备份仍需旧密码恢复。":
+    "After changing, use the new password to unlock. Previously exported encrypted backups still require the old password to restore.",
+  "修改主密码…": "Change Master Password…",
+  "当前密码": "Current Password",
+  "新密码": "New Password",
+  "确认新密码": "Confirm New Password",
+  "确认修改": "Confirm Change",
+  "新密码不能为空。": "New password cannot be empty.",
+  "两次输入的新密码不一致。": "The two new password entries do not match.",
+  "新密码不能与当前密码相同。": "The new password must differ from the current one.",
+  "主密码已修改。": "Master password changed."
 });
 
 function getChromeStorage() {
