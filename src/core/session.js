@@ -1,5 +1,6 @@
 import {
   AUTO_LOCK_ALARM,
+  AUTO_LOCK_ON_BROWSER_CLOSE,
   DEFAULT_AUTO_LOCK_MINUTES,
   SESSION_STORAGE_KEY
 } from "./constants.js";
@@ -25,11 +26,14 @@ export function createSessionRecord({
   autoLockMinutes = DEFAULT_AUTO_LOCK_MINUTES,
   now = Date.now()
 }) {
+  const normalized = normalizeAutoLockMinutes(autoLockMinutes);
   return normalizeSessionRecord({
     encodedKey,
-    autoLockMinutes,
+    autoLockMinutes: normalized,
     lastActivityAt: now,
-    expiresAt: now + minutesToMilliseconds(autoLockMinutes)
+    expiresAt: normalized === AUTO_LOCK_ON_BROWSER_CLOSE
+      ? Number.MAX_SAFE_INTEGER
+      : now + minutesToMilliseconds(normalized)
   });
 }
 
@@ -60,7 +64,9 @@ export async function clearSessionRecord() {
 
 export async function scheduleAutoLock(expiresAt) {
   await chrome.alarms.clear(AUTO_LOCK_ALARM);
-  await chrome.alarms.create(AUTO_LOCK_ALARM, { when: expiresAt });
+  if (expiresAt < Number.MAX_SAFE_INTEGER) {
+    await chrome.alarms.create(AUTO_LOCK_ALARM, { when: expiresAt });
+  }
 }
 
 export async function clearAutoLockAlarm() {

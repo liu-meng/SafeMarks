@@ -683,6 +683,11 @@ function appendTreeContent(listElement, node, queryActive) {
 }
 
 function updateSessionBadge(expiresAt) {
+  if (expiresAt >= Number.MAX_SAFE_INTEGER) {
+    elements.sessionBadge.textContent = t("已解锁 · 关闭浏览器时自动锁定");
+    return;
+  }
+
   const seconds = Math.max(0, Math.round((expiresAt - Date.now()) / 1000));
   const minutes = Math.max(1, Math.ceil(seconds / 60));
   elements.sessionBadge.textContent = t("已解锁 · 约 {minutes} 分钟后自动锁定", { minutes });
@@ -711,6 +716,10 @@ async function refreshPendingQuickCaptureStatus() {
 function scheduleLocalLock(expiresAt) {
   clearLockTimer();
   updateSessionBadge(expiresAt);
+
+  if (expiresAt >= Number.MAX_SAFE_INTEGER) {
+    return;
+  }
 
   const timeout = Math.max(0, expiresAt - Date.now());
   state.lockTimer = window.setTimeout(() => {

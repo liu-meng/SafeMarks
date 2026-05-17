@@ -244,8 +244,10 @@ function setSessionState(status, minutes = null) {
     return;
   }
 
-  if (status === "unlocked" && minutes) {
-    elements.sessionStatus.textContent = t("已解锁 · {minutes} 分钟自动锁定", { minutes });
+  if (status === "unlocked" && minutes !== null) {
+    elements.sessionStatus.textContent = minutes === 0
+      ? t("已解锁 · 关闭浏览器时锁定")
+      : t("已解锁 · {minutes} 分钟自动锁定", { minutes });
     elements.lockSession.hidden = false;
     elements.lockSession.disabled = false;
     setUnlockPanel(false);

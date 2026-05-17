@@ -450,8 +450,10 @@ function setVaultStatus(initialized) {
 function setSessionState(status, minutes = null) {
   state.sessionState = status;
 
-  if (status === "unlocked" && minutes) {
-    elements.sessionStatus.textContent = t("已解锁 · {minutes} 分钟自动锁定", { minutes });
+  if (status === "unlocked" && minutes !== null) {
+    elements.sessionStatus.textContent = minutes === 0
+      ? t("已解锁 · 关闭浏览器时锁定")
+      : t("已解锁 · {minutes} 分钟自动锁定", { minutes });
     elements.lockSession.disabled = false;
     elements.lockSession.hidden = false;
     elements.unlockPanelBadge.textContent = t("会话已解锁");

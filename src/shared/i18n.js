@@ -398,7 +398,10 @@ const EN_TRANSLATIONS = Object.freeze({
   "新密码不能为空。": "New password cannot be empty.",
   "两次输入的新密码不一致。": "The two new password entries do not match.",
   "新密码不能与当前密码相同。": "The new password must differ from the current one.",
-  "主密码已修改。": "Master password changed."
+  "主密码已修改。": "Master password changed.",
+  "关闭浏览器时锁定": "Lock on Browser Close",
+  "已解锁 · 关闭浏览器时自动锁定": "Unlocked · locks when browser closes",
+  "已解锁 · 关闭浏览器时锁定": "Unlocked · lock on browser close"
 });
 
 function getChromeStorage() {
