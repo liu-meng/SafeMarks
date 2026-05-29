@@ -3,6 +3,7 @@ import {
   DEFAULT_AUTO_LOCK_MINUTES,
   VERSION
 } from "./constants.js";
+import { normalizeBookmarkTags } from "./tags.js";
 import { getLocaleTag, t } from "../shared/i18n.js";
 
 function assertObject(value, message) {
@@ -112,7 +113,7 @@ export function isSupportedBookmarkUrl(rawUrl) {
   }
 }
 
-export function createBookmarkInput({ url, title, note, folderPath }) {
+export function createBookmarkInput({ url, title, note, folderPath, tags }) {
   const normalizedUrl = assertString(url, t("URL 不能为空。"));
   if (!isSupportedBookmarkUrl(normalizedUrl)) {
     throw new Error(t("仅支持保存 http 或 https 页面。"));
@@ -126,7 +127,8 @@ export function createBookmarkInput({ url, title, note, folderPath }) {
     url: normalizedUrl,
     title: normalizedTitle,
     note: normalizedNote,
-    folderPath: normalizedFolderPath
+    folderPath: normalizedFolderPath,
+    tags: normalizeBookmarkTags(tags)
   };
 }
 
@@ -147,9 +149,7 @@ export function normalizeBookmark(value) {
     title: input.title,
     note: input.note,
     folderPath: input.folderPath,
-    tags: Array.isArray(value.tags)
-      ? value.tags.filter((tag) => typeof tag === "string")
-      : [],
+    tags: input.tags,
     createdAt
   };
 }

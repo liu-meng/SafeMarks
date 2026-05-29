@@ -38,7 +38,7 @@ export function createBookmark(payload) {
     title: input.title,
     note: input.note,
     folderPath: input.folderPath,
-    tags: [],
+    tags: input.tags,
     createdAt:
       Number.isFinite(createdAt) && createdAt > 0
         ? createdAt

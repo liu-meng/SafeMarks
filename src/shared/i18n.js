@@ -84,6 +84,13 @@ const EN_TRANSLATIONS = Object.freeze({
   "管理收藏": "Manage Bookmarks",
   "搜索收藏": "Search Bookmarks",
   "按标题、URL、目录或备注搜索": "Search by title, URL, folder, or note",
+  "支持标题、URL、目录、备注和标签的模糊搜索":
+    "Fuzzy search title, URL, folder, note, and tags",
+  "标签": "Tags",
+  "输入标签后按 Enter": "Type a tag and press Enter",
+  "输入要添加的标签": "Type tags to add",
+  "输入要移除的标签": "Type tags to remove",
+  "移除标签 {tag}": "Remove tag {tag}",
   "还没有收藏，先把当前页加入保险库。": "No bookmarks yet. Save the current page to get started.",
   "还没有收藏，可先保存当前页，或去设置页导入浏览器书签。":
     "No bookmarks yet. Save the current page first, or import browser bookmarks from the settings flow.",
@@ -97,8 +104,20 @@ const EN_TRANSLATIONS = Object.freeze({
   "解锁并查看": "Unlock and View",
   "维护收藏列表": "Maintain Bookmarks",
   "检查当前保险库状态中...": "Checking vault status...",
+  "已选择 0 条": "0 selected",
+  "已选择 {count} 条": "{count} selected",
+  "选择当前可见": "Select Visible",
+  "清空选择": "Clear Selection",
+  "移动到目录": "Move to Folder",
+  "留空表示未分类": "Leave blank to move to unfiled",
+  "移动": "Move",
+  "添加标签": "Add Tags",
+  "移除标签": "Remove Tags",
+  "删除选中": "Delete Selected",
   "加载中...": "Loading...",
   "收藏": "Bookmark",
+  "选择": "Select",
+  "选择“{title}”": "Select “{title}”",
   "目录": "Folder",
   "保存时间": "Saved At",
   "操作": "Actions",
@@ -235,6 +254,8 @@ const EN_TRANSLATIONS = Object.freeze({
     "A folder-grouped bookmark management view appears here after unlocking.",
   "正在按标题、URL、目录和备注筛选收藏。":
     "Filtering bookmarks by title, URL, folder, and note.",
+  "正在按标题、URL、目录、备注和标签模糊搜索收藏。":
+    "Fuzzy searching bookmarks by title, URL, folder, note, and tags.",
   "紧凑视图已按保存时间倒序展示，可直接在当前页编辑或删除。":
     "The compact view is sorted by saved time in descending order, and you can edit or delete bookmarks directly here.",
   "目录树默认折叠，收藏按保存时间倒序展示，可直接在当前页编辑或删除。":
@@ -257,6 +278,13 @@ const EN_TRANSLATIONS = Object.freeze({
   "已解锁收藏管理页。": "Bookmark manager unlocked.",
   "当前会话已锁定。": "Current session locked.",
   "文件夹已删除。": "Folder deleted.",
+  "已移动 {count} 条收藏。": "Moved {count} bookmarks.",
+  "请先选择收藏并输入要添加的标签。": "Select bookmarks and enter tags to add first.",
+  "请先选择收藏并输入要移除的标签。": "Select bookmarks and enter tags to remove first.",
+  "已为 {count} 条收藏添加标签。": "Added tags to {count} bookmarks.",
+  "已从 {count} 条收藏移除标签。": "Removed tags from {count} bookmarks.",
+  "确认删除选中的 {count} 条收藏？": "Delete the {count} selected bookmarks?",
+  "已删除 {count} 条收藏。": "Deleted {count} bookmarks.",
   "打开 SafeMarks": "Open SafeMarks",
   "打开扩展 popup，继续解锁、搜索或保存当前页。":
     "Open the extension popup to unlock, search, or save the current page.",

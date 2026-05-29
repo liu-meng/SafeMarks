@@ -9,6 +9,7 @@ import {
 } from "../core/quick-capture.js";
 import { syncFolderCatalogFromBookmarks } from "../core/folder-catalog.js";
 import { initializeI18n, localizeDocument, t } from "../shared/i18n.js";
+import { createTagChipsInput } from "../shared/tag-chips.js";
 
 try {
   await initializeI18n();
@@ -31,10 +32,14 @@ const elements = {
   existingFolderSelect: document.querySelector("#existing-folder-select"),
   folderPath: document.querySelector("#capture-folder-path"),
   folderHelper: document.querySelector("#folder-helper"),
+  tagsField: document.querySelector("#capture-tags-field"),
   submit: document.querySelector("#capture-submit"),
   openUnlock: document.querySelector("#open-unlock"),
   openSettings: document.querySelector("#open-settings")
 };
+
+const tagEditor = createTagChipsInput();
+elements.tagsField.append(tagEditor.element);
 
 const state = {
   draft: null,
@@ -219,7 +224,8 @@ async function handleSubmit(event) {
     const bookmark = createQuickCaptureBookmark({
       title: elements.title.value,
       url: elements.url.value,
-      folderPath: elements.folderPath.value
+      folderPath: elements.folderPath.value,
+      tags: tagEditor.getTags()
     });
     const touched = await sessionTouch();
 

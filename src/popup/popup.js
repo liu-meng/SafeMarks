@@ -29,6 +29,7 @@ import {
 } from "../shared/i18n.js";
 import { getLatestVersion } from "../shared/changelog.js";
 import { createPasswordStrengthMeter } from "../shared/password-strength-meter.js";
+import { createTagChipsInput, createTagList } from "../shared/tag-chips.js";
 
 const MANAGER_PAGE_URL = chrome.runtime.getURL("src/manager/index.html");
 const CHANGELOG_PAGE_URL = chrome.runtime.getURL("src/changelog/index.html");
@@ -81,6 +82,7 @@ const elements = {
   addFolderClear: document.querySelector("#bookmark-folder-clear"),
   addFolderEmpty: document.querySelector("#bookmark-folder-empty"),
   addNote: document.querySelector("#bookmark-note"),
+  addTagsField: document.querySelector("#bookmark-tags-field"),
   addSubmit: document.querySelector("#add-submit"),
   pageStatus: document.querySelector("#page-status"),
   bookmarkCount: document.querySelector("#bookmark-count"),
@@ -96,6 +98,9 @@ const elements = {
 const setupStrengthMeter = createPasswordStrengthMeter();
 elements.setupPassword.after(setupStrengthMeter.element);
 elements.setupPassword.addEventListener("input", (e) => setupStrengthMeter.update(e.target.value));
+
+const addTagEditor = createTagChipsInput();
+elements.addTagsField.append(addTagEditor.element);
 
 const state = {
   record: null,
@@ -367,6 +372,7 @@ function resetSaveForm() {
   elements.addUrl.value = "";
   elements.addFolderPath.value = "";
   elements.addNote.value = "";
+  addTagEditor.clear();
   elements.addTitle.disabled = true;
   elements.addUrl.disabled = true;
   elements.addFolderPath.disabled = true;
@@ -397,6 +403,7 @@ function openSaveForm(mode, bookmark = null) {
     elements.addUrl.value = bookmark.url;
     elements.addFolderPath.value = bookmark.folderPath;
     elements.addNote.value = bookmark.note;
+    addTagEditor.setTags(bookmark.tags);
     elements.pageStatus.textContent = t("可修改标题、URL、分类目录和备注，保存后会覆盖原收藏。");
     syncFolderPickerDisabledState();
     renderFolderTreeSelect();
@@ -407,6 +414,7 @@ function openSaveForm(mode, bookmark = null) {
   elements.addUrl.value = "";
   elements.addFolderPath.value = "";
   elements.addNote.value = "";
+  addTagEditor.clear();
   elements.pageStatus.textContent = t("正在读取当前页面信息...");
   syncFolderPickerDisabledState();
   renderFolderTreeSelect();
@@ -608,6 +616,10 @@ function createBookmarkItem(bookmark) {
   titleRow.append(titleMain);
   item.append(titleRow, urlLine, meta, actionGroup);
 
+  if (bookmark.tags?.length > 0) {
+    item.append(createTagList(bookmark.tags));
+  }
+
   if (state.detailBookmarkId === bookmark.id) {
     const detailCard = document.createElement("div");
     detailCard.className = "bookmark-detail-card";
@@ -623,6 +635,16 @@ function createBookmarkItem(bookmark) {
       detailFolderValue.textContent = bookmark.folderPath;
       detailFolderRow.append(detailFolderLabel, detailFolderValue);
       detailCard.append(detailFolderRow);
+    }
+
+    if (bookmark.tags?.length > 0) {
+      const detailTagsRow = document.createElement("div");
+      detailTagsRow.className = "bookmark-detail-row";
+      const detailTagsLabel = document.createElement("span");
+      detailTagsLabel.className = "bookmark-detail-label";
+      detailTagsLabel.textContent = t("标签");
+      detailTagsRow.append(detailTagsLabel, createTagList(bookmark.tags));
+      detailCard.append(detailTagsRow);
     }
 
     const detailUrlRow = document.createElement("div");
@@ -1088,7 +1110,8 @@ async function handleAddSubmit(event) {
         title: elements.addTitle.value,
         url: elements.addUrl.value,
         folderPath: elements.addFolderPath.value,
-        note: elements.addNote.value
+        note: elements.addNote.value,
+        tags: addTagEditor.getTags()
       });
       const nextBookmarks = state.bookmarks.map((bookmark) =>
         bookmark.id === currentBookmark.id
@@ -1097,7 +1120,8 @@ async function handleAddSubmit(event) {
               title: draftBookmark.title,
               url: draftBookmark.url,
               folderPath: draftBookmark.folderPath,
-              note: draftBookmark.note
+              note: draftBookmark.note,
+              tags: draftBookmark.tags
             }
           : bookmark
       );
@@ -1107,7 +1131,8 @@ async function handleAddSubmit(event) {
         title: elements.addTitle.value,
         url: elements.addUrl.value,
         folderPath: elements.addFolderPath.value,
-        note: elements.addNote.value
+        note: elements.addNote.value,
+        tags: addTagEditor.getTags()
       });
       const nextBookmarks = [bookmark, ...state.bookmarks];
       await persistBookmarks(nextBookmarks, t("当前页已加密保存。"));

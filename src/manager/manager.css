@@ -63,9 +63,36 @@
 
 .manager-row {
   display: grid;
-  grid-template-columns: minmax(0, 2.4fr) minmax(0, 1.15fr) minmax(0, 1.55fr) 116px auto;
+  grid-template-columns: 28px minmax(0, 2.4fr) minmax(0, 1.15fr) minmax(0, 1.55fr) 116px auto;
   gap: 10px;
   align-items: start;
+}
+
+.batch-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid rgba(18, 101, 109, 0.16);
+  border-radius: var(--radius-md);
+  background: rgba(18, 101, 109, 0.06);
+}
+
+.batch-toolbar-head,
+.batch-actions {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.batch-toolbar-head {
+  justify-content: space-between;
+}
+
+.batch-folder-label {
+  min-width: 180px;
+  flex: 1 1 180px;
 }
 
 .manager-bookmark-list {
@@ -152,6 +179,19 @@
 
 .manager-row {
   padding: 10px 12px;
+}
+
+.manager-row-select {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 2px;
+}
+
+.manager-row-select input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
 }
 
 .manager-row-main {
@@ -256,7 +296,8 @@
   gap: 10px;
 }
 
-.manager-edit-note {
+.manager-edit-note,
+.manager-edit-tags {
   grid-column: 1 / -1;
 }
 
@@ -285,6 +326,10 @@
     gap: 8px;
   }
 
+  .manager-row-select {
+    justify-content: flex-start;
+  }
+
   .manager-row-cell::before {
     content: attr(data-label);
     display: block;
@@ -298,6 +343,11 @@
 
   .manager-row-actions {
     justify-content: flex-start;
+  }
+
+  .batch-actions {
+    align-items: stretch;
+    flex-direction: column;
   }
 }
 

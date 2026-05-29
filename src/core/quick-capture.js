@@ -33,7 +33,8 @@ export function createQuickCaptureBookmark(draft) {
     title: draft.title,
     url: draft.url,
     note: draft.note,
-    folderPath: draft.folderPath
+    folderPath: draft.folderPath,
+    tags: draft.tags
   });
 }
 

@@ -12,7 +12,14 @@ import {
   createVaultRecord
 } from "../src/core/vault.js";
 import { getBookmarkSearchResults } from "../src/core/bookmark-search.js";
+import {
+  addTagsToBookmarks,
+  deleteBookmarksByIds,
+  moveBookmarksToFolder,
+  removeTagsFromBookmarks
+} from "../src/core/batch.js";
 import { flattenNativeBookmarkTree } from "../src/core/native-bookmarks.js";
+import { normalizeBookmarkTags } from "../src/core/tags.js";
 import {
   hasVaultRecordData,
   loadFolderCatalog,
@@ -57,6 +64,34 @@ test("options page exposes script-required shortcut controls", () => {
   assert.match(html, /id="open-shortcut-settings"/);
   assert.match(html, /id="shortcut-list"/);
   assert.doesNotMatch(html, /(?:id|class|type|aria-live)=["“”][^"]*[“”]/);
+});
+
+test("manager page exposes batch toolbar controls", () => {
+  const html = readFileSync(new URL("../src/manager/index.html", import.meta.url), "utf8");
+
+  assert.match(html, /id="batch-toolbar"/);
+  assert.match(html, /id="select-visible"/);
+  assert.match(html, /id="batch-folder-path"/);
+  assert.match(html, /id="batch-add-tags-field"/);
+  assert.match(html, /id="batch-remove-tags-field"/);
+  assert.match(html, /id="batch-delete"/);
+});
+
+test("tag normalization trims hashes deduplicates and limits values", () => {
+  const tags = normalizeBookmarkTags([
+    "  #Work  ",
+    "work",
+    "A   Long   Tag",
+    "",
+    "#".repeat(3),
+    "x".repeat(40),
+    ...Array.from({ length: 30 }, (_item, index) => `tag-${index}`)
+  ]);
+
+  assert.equal(tags[0], "Work");
+  assert.equal(tags[1], "A Long Tag");
+  assert.equal(tags[2], "x".repeat(32));
+  assert.equal(tags.length, 20);
 });
 
 test("vault can be created and unlocked with the same password", async () => {
@@ -241,6 +276,32 @@ test("bookmark note stays encrypted round-trip with encoded key", async () => {
   );
 
   assert.equal(bookmarks[0].note, "Read this before deployment");
+});
+
+test("bookmark tags stay encrypted round-trip with encoded key", async () => {
+  const created = await createVaultRecord("vault-pass", 5);
+  const unlocked = await unlockVaultRecord(created.record, "vault-pass");
+  const nextRecord = await encryptBookmarksWithEncodedKey(
+    created.record,
+    [
+      createBookmark({
+        id: "bm_4",
+        url: "https://example.com/tagged",
+        title: "Tagged Bookmark",
+        note: "",
+        folderPath: "",
+        tags: ["#Work", "work", "Read Later"],
+        createdAt: 1710000000003
+      })
+    ],
+    unlocked.encodedKey
+  );
+  const bookmarks = await decryptBookmarksWithEncodedKey(
+    nextRecord,
+    unlocked.encodedKey
+  );
+
+  assert.deepEqual(bookmarks[0].tags, ["Work", "Read Later"]);
 });
 
 test("bookmark validation keeps legacy items compatible without folder path", async () => {
@@ -628,6 +689,89 @@ test("bookmark search keeps newest bookmarks first", () => {
   );
 });
 
+test("bookmark search matches tags and fuzzy title text", () => {
+  const results = getBookmarkSearchResults(
+    [
+      {
+        id: "bm_1",
+        title: "Production Incident Review",
+        url: "https://example.com/prod",
+        folderPath: "Work",
+        note: "",
+        tags: ["Postmortem"],
+        createdAt: 1710000000000
+      },
+      {
+        id: "bm_2",
+        title: "Home",
+        url: "https://example.com/home",
+        folderPath: "Personal",
+        note: "",
+        tags: ["Read Later"],
+        createdAt: 1710000000100
+      }
+    ],
+    "pdir"
+  );
+
+  assert.equal(results.length, 1);
+  assert.equal(results[0].id, "bm_1");
+
+  const tagResults = getBookmarkSearchResults(results.concat([
+    {
+      id: "bm_3",
+      title: "Notes",
+      url: "https://example.com/notes",
+      folderPath: "",
+      note: "",
+      tags: ["Security"],
+      createdAt: 1710000000200
+    }
+  ]), "security");
+
+  assert.equal(tagResults[0].id, "bm_3");
+});
+
+test("bookmark search prioritizes title and tag matches before older lower weighted fields", () => {
+  const results = getBookmarkSearchResults(
+    [
+      {
+        id: "bm_old_url",
+        title: "Reference",
+        url: "https://example.com/security",
+        folderPath: "",
+        note: "",
+        tags: [],
+        createdAt: 1710000000300
+      },
+      {
+        id: "bm_tag",
+        title: "Checklist",
+        url: "https://example.com/check",
+        folderPath: "",
+        note: "",
+        tags: ["Security"],
+        createdAt: 1710000000000
+      },
+      {
+        id: "bm_title",
+        title: "Security Guide",
+        url: "https://example.com/guide",
+        folderPath: "",
+        note: "",
+        tags: [],
+        createdAt: 1710000000100
+      }
+    ],
+    "security"
+  );
+
+  assert.deepEqual(
+    results.map((bookmark) => bookmark.id),
+    ["bm_title", "bm_tag", "bm_old_url"]
+  );
+});
+
 function createChromeStorageMock(initialLocal = {}, tabs = []) {
   const localStore = { ...initialLocal };
   const sessionStore = {};
@@ -780,6 +924,53 @@ test("removeFolderTreeFromBookmarks respects folder path boundaries", () => {
     result.nextBookmarks.map((bookmark) => bookmark.id),
     ["2"]
   );
+});
+
+test("batch helpers move tag and delete only selected bookmarks", () => {
+  const bookmarks = [
+    {
+      id: "1",
+      title: "A",
+      url: "https://example.com/a",
+      folderPath: "Old",
+      note: "",
+      tags: ["Keep"],
+      createdAt: 1710000000000
+    },
+    {
+      id: "2",
+      title: "B",
+      url: "https://example.com/b",
+      folderPath: "Old",
+      note: "",
+      tags: ["Work"],
+      createdAt: 1710000000001
+    },
+    {
+      id: "3",
+      title: "C",
+      url: "https://example.com/c",
+      folderPath: "Other",
+      note: "",
+      tags: [],
+      createdAt: 1710000000002
+    }
+  ];
+
+  const moved = moveBookmarksToFolder(bookmarks, ["1", "2"], " New / Folder ");
+  assert.deepEqual(moved.map((bookmark) => bookmark.folderPath), ["New/Folder", "New/Folder", "Other"]);
+
+  const withTags = addTagsToBookmarks(moved, ["1", "2"], ["#Work", "Later"]);
+  assert.deepEqual(withTags[0].tags, ["Keep", "Work", "Later"]);
+  assert.deepEqual(withTags[1].tags, ["Work", "Later"]);
+  assert.deepEqual(withTags[2].tags, []);
+
+  const withoutTags = removeTagsFromBookmarks(withTags, ["1", "3"], ["work"]);
+  assert.deepEqual(withoutTags[0].tags, ["Keep", "Later"]);
+  assert.deepEqual(withoutTags[1].tags, ["Work", "Later"]);
+
+  const deleted = deleteBookmarksByIds(withoutTags, ["2"]);
+  assert.deepEqual(deleted.map((bookmark) => bookmark.id), ["1", "3"]);
 });
 
 test("queued quick capture adds its folder path into folder catalog", async () => {

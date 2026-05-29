@@ -63,10 +63,37 @@
             id="search-input"
             class="input"
             type="search"
-            placeholder="按标题、URL、目录或备注搜索"
+            placeholder="支持标题、URL、目录、备注和标签的模糊搜索"
             disabled
           />
         </label>
+
+        <section id="batch-toolbar" class="batch-toolbar" hidden>
+          <div class="batch-toolbar-head">
+            <p id="batch-selection-count" class="badge">已选择 0 条</p>
+            <div class="button-row">
+              <button id="select-visible" class="button-secondary" type="button">选择当前可见</button>
+              <button id="clear-selection" class="ghost-button" type="button">清空选择</button>
+            </div>
+          </div>
+          <div class="batch-actions">
+            <label class="label batch-folder-label">
+              <span>移动到目录</span>
+              <input
+                id="batch-folder-path"
+                class="input"
+                type="text"
+                placeholder="留空表示未分类"
+              />
+            </label>
+            <button id="batch-move" class="button-secondary" type="button">移动</button>
+            <div id="batch-add-tags-field"></div>
+            <button id="batch-add-tags" class="button-secondary" type="button">添加标签</button>
+            <div id="batch-remove-tags-field"></div>
+            <button id="batch-remove-tags" class="button-secondary" type="button">移除标签</button>
+            <button id="batch-delete" class="button-danger" type="button">删除选中</button>
+          </div>
+        </section>
 
         <div id="empty-state" class="empty-state">加载中...</div>
         <ul id="bookmark-list" class="bookmark-list manager-bookmark-list"></ul>

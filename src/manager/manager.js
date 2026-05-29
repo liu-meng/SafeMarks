@@ -17,8 +17,15 @@ import {
   encryptBookmarksWithEncodedKey,
   unlockVaultRecord
 } from "../core/vault.js";
+import {
+  addTagsToBookmarks,
+  deleteBookmarksByIds,
+  moveBookmarksToFolder,
+  removeTagsFromBookmarks
+} from "../core/batch.js";
 import { findInternalDuplicates } from "../core/dedup.js";
 import { formatDateTime, initializeI18n, localizeDocument, t } from "../shared/i18n.js";
+import { createTagChipsInput, createTagList } from "../shared/tag-chips.js";
 
 try {
   await initializeI18n();
@@ -41,9 +48,31 @@ const elements = {
   findDuplicates: document.querySelector("#find-duplicates"),
   managerStatus: document.querySelector("#manager-status"),
   searchInput: document.querySelector("#search-input"),
+  batchToolbar: document.querySelector("#batch-toolbar"),
+  batchSelectionCount: document.querySelector("#batch-selection-count"),
+  selectVisible: document.querySelector("#select-visible"),
+  clearSelection: document.querySelector("#clear-selection"),
+  batchFolderPath: document.querySelector("#batch-folder-path"),
+  batchMove: document.querySelector("#batch-move"),
+  batchAddTagsField: document.querySelector("#batch-add-tags-field"),
+  batchAddTags: document.querySelector("#batch-add-tags"),
+  batchRemoveTagsField: document.querySelector("#batch-remove-tags-field"),
+  batchRemoveTags: document.querySelector("#batch-remove-tags"),
+  batchDelete: document.querySelector("#batch-delete"),
   emptyState: document.querySelector("#empty-state"),
   bookmarkList: document.querySelector("#bookmark-list")
 };
+
+const batchAddTagEditor = createTagChipsInput({
+  label: t("添加标签"),
+  placeholder: t("输入要添加的标签")
+});
+const batchRemoveTagEditor = createTagChipsInput({
+  label: t("移除标签"),
+  placeholder: t("输入要移除的标签")
+});
+elements.batchAddTagsField.append(batchAddTagEditor.element);
+elements.batchRemoveTagsField.append(batchRemoveTagEditor.element);
 
 const state = {
   hasVault: false,
@@ -53,6 +82,8 @@ const state = {
   bookmarks: [],
   query: "",
   editingBookmarkId: null,
+  selectedBookmarkIds: new Set(),
+  visibleBookmarkIds: [],
   collapsedFolders: new Set(),
   knownFolderPaths: new Set()
 };
@@ -200,6 +231,8 @@ function clearUnlockedState(clearQuery = false) {
   state.encodedKey = "";
   state.bookmarks = [];
   state.editingBookmarkId = null;
+  state.selectedBookmarkIds = new Set();
+  state.visibleBookmarkIds = [];
   state.collapsedFolders = new Set();
   state.knownFolderPaths = new Set();
 
@@ -207,6 +240,37 @@ function clearUnlockedState(clearQuery = false) {
     state.query = "";
     elements.searchInput.value = "";
   }
+}
+
+function pruneSelection() {
+  const bookmarkIds = new Set(state.bookmarks.map((bookmark) => bookmark.id));
+  state.selectedBookmarkIds = new Set(
+    [...state.selectedBookmarkIds].filter((bookmarkId) => bookmarkIds.has(bookmarkId))
+  );
+}
+
+function getSelectedIds() {
+  return [...state.selectedBookmarkIds];
+}
+
+function setBookmarkSelected(bookmarkId, selected) {
+  if (selected) {
+    state.selectedBookmarkIds.add(bookmarkId);
+  } else {
+    state.selectedBookmarkIds.delete(bookmarkId);
+  }
+  renderView();
+}
+
+function renderBatchToolbar(unlocked, visibleBookmarks) {
+  pruneSelection();
+  state.visibleBookmarkIds = visibleBookmarks.map((bookmark) => bookmark.id);
+
+  const selectedCount = state.selectedBookmarkIds.size;
+  elements.batchToolbar.hidden = !unlocked || selectedCount === 0;
+  elements.batchSelectionCount.textContent = t("已选择 {count} 条", { count: selectedCount });
+  elements.selectVisible.disabled = !unlocked || visibleBookmarks.length === 0;
+  elements.clearSelection.disabled = selectedCount === 0;
 }
 
 function setUnlockPanel(visible, copy = t("输入主密码后即可继续查看和维护收藏。")) {
@@ -302,11 +366,14 @@ function createManagerRow(bookmark) {
 
   if (state.editingBookmarkId === bookmark.id) {
     item.classList.add("manager-edit-item");
+    const tagEditor = createTagChipsInput({
+      initialTags: bookmark.tags
+    });
 
     const form = document.createElement("form");
     form.className = "stack manager-edit-form";
     form.addEventListener("submit", (event) => {
-      handleEditSubmit(event, bookmark.id).catch((error) => {
+      handleEditSubmit(event, bookmark.id, tagEditor.getTags()).catch((error) => {
         setMessage(error instanceof Error ? error.message : String(error), "error");
       });
     });
@@ -362,7 +429,8 @@ function createManagerRow(bookmark) {
 
     const editGrid = document.createElement("div");
     editGrid.className = "manager-edit-grid";
-    editGrid.append(titleLabel, urlLabel, folderLabel, noteLabel);
+    tagEditor.element.classList.add("manager-edit-tags");
+    editGrid.append(titleLabel, urlLabel, folderLabel, noteLabel, tagEditor.element);
 
     const footer = document.createElement("div");
     footer.className = "manager-edit-footer";
@@ -399,6 +467,18 @@ function createManagerRow(bookmark) {
 
   item.classList.add("manager-row");
 
+  const selectCell = document.createElement("label");
+  selectCell.className = "manager-row-select";
+  selectCell.dataset.label = t("选择");
+  const checkbox = document.createElement("input");
+  checkbox.type = "checkbox";
+  checkbox.checked = state.selectedBookmarkIds.has(bookmark.id);
+  checkbox.setAttribute("aria-label", t("选择“{title}”", { title: bookmark.title }));
+  checkbox.addEventListener("change", () => {
+    setBookmarkSelected(bookmark.id, checkbox.checked);
+  });
+  selectCell.append(checkbox);
+
   const main = document.createElement("div");
   main.className = "manager-row-main";
   main.dataset.label = t("收藏");
@@ -417,6 +497,9 @@ function createManagerRow(bookmark) {
   urlLine.title = bookmark.url;
 
   main.append(titleLink, urlLine);
+  if (bookmark.tags?.length > 0) {
+    main.append(createTagList(bookmark.tags));
+  }
 
   const folder = document.createElement("div");
   folder.className = "manager-row-cell";
@@ -456,7 +539,7 @@ function createManagerRow(bookmark) {
     createActionButton(t("删除"), "manager-delete-button", () => handleDeleteBookmark(bookmark.id))
   );
 
-  item.append(main, folder, note, time, actions);
+  item.append(selectCell, main, folder, note, time, actions);
   return item;
 }
 
@@ -547,6 +630,7 @@ function renderView() {
   elements.searchInput.value = state.query;
   elements.bookmarkList.replaceChildren();
   elements.emptyState.hidden = true;
+  renderBatchToolbar(unlocked, filteredBookmarks);
 
   if (!state.hasVault) {
     elements.bookmarkCount.textContent = t("未初始化");
@@ -575,7 +659,7 @@ function renderView() {
       })
     : t("{count} 条收藏", { count: state.bookmarks.length });
   elements.managerStatus.textContent = state.query.trim()
-    ? t("正在按标题、URL、目录和备注筛选收藏。")
+    ? t("正在按标题、URL、目录、备注和标签模糊搜索收藏。")
     : t("目录树默认折叠，收藏按保存时间倒序展示，可直接在当前页编辑或删除。");
 
   if (filteredBookmarks.length === 0) {
@@ -672,6 +756,7 @@ async function persistBookmarks(nextBookmarks, successMessage) {
   state.record = nextRecord;
   state.bookmarks = nextBookmarks;
   state.editingBookmarkId = null;
+  pruneSelection();
   await refreshView(successMessage);
 }
 
@@ -692,7 +777,7 @@ async function handleStartEdit(bookmarkId) {
   }
 }
 
-async function handleEditSubmit(event, bookmarkId) {
+async function handleEditSubmit(event, bookmarkId, tags) {
   event.preventDefault();
   const currentBookmark = state.bookmarks.find((bookmark) => bookmark.id === bookmarkId);
   if (!currentBookmark) {
@@ -704,7 +789,8 @@ async function handleEditSubmit(event, bookmarkId) {
     title: formData.get("title"),
     url: formData.get("url"),
     folderPath: formData.get("folderPath"),
-    note: formData.get("note")
+    note: formData.get("note"),
+    tags
   });
   const nextBookmarks = state.bookmarks.map((bookmark) =>
     bookmark.id === bookmarkId
@@ -713,7 +799,8 @@ async function handleEditSubmit(event, bookmarkId) {
           title: draftBookmark.title,
           url: draftBookmark.url,
           folderPath: draftBookmark.folderPath,
-          note: draftBookmark.note
+          note: draftBookmark.note,
+          tags: draftBookmark.tags
         }
       : bookmark
   );
@@ -763,6 +850,75 @@ async function handleDeleteFolder(folderPath) {
   }
 
   await persistBookmarks(nextBookmarks, t("文件夹已删除。"));
+}
+
+function handleSelectVisible() {
+  for (const bookmarkId of state.visibleBookmarkIds) {
+    state.selectedBookmarkIds.add(bookmarkId);
+  }
+  renderView();
+}
+
+function handleClearSelection() {
+  state.selectedBookmarkIds = new Set();
+  renderView();
+}
+
+async function handleBatchMove() {
+  const selectedIds = getSelectedIds();
+  if (selectedIds.length === 0) {
+    return;
+  }
+
+  const nextBookmarks = moveBookmarksToFolder(
+    state.bookmarks,
+    selectedIds,
+    elements.batchFolderPath.value
+  );
+  await persistBookmarks(nextBookmarks, t("已移动 {count} 条收藏。", { count: selectedIds.length }));
+  elements.batchFolderPath.value = "";
+}
+
+async function handleBatchAddTags() {
+  const selectedIds = getSelectedIds();
+  const tags = batchAddTagEditor.getTags();
+  if (selectedIds.length === 0 || tags.length === 0) {
+    throw new Error(t("请先选择收藏并输入要添加的标签。"));
+  }
+
+  const nextBookmarks = addTagsToBookmarks(state.bookmarks, selectedIds, tags);
+  await persistBookmarks(nextBookmarks, t("已为 {count} 条收藏添加标签。", { count: selectedIds.length }));
+  batchAddTagEditor.clear();
+}
+
+async function handleBatchRemoveTags() {
+  const selectedIds = getSelectedIds();
+  const tags = batchRemoveTagEditor.getTags();
+  if (selectedIds.length === 0 || tags.length === 0) {
+    throw new Error(t("请先选择收藏并输入要移除的标签。"));
+  }
+
+  const nextBookmarks = removeTagsFromBookmarks(state.bookmarks, selectedIds, tags);
+  await persistBookmarks(nextBookmarks, t("已从 {count} 条收藏移除标签。", { count: selectedIds.length }));
+  batchRemoveTagEditor.clear();
+}
+
+async function handleBatchDelete() {
+  const selectedIds = getSelectedIds();
+  if (selectedIds.length === 0) {
+    return;
+  }
+
+  const confirmed = window.confirm(t("确认删除选中的 {count} 条收藏？", {
+    count: selectedIds.length
+  }));
+  if (!confirmed) {
+    return;
+  }
+
+  const nextBookmarks = deleteBookmarksByIds(state.bookmarks, selectedIds);
+  state.selectedBookmarkIds = new Set();
+  await persistBookmarks(nextBookmarks, t("已删除 {count} 条收藏。", { count: selectedIds.length }));
 }
 
 async function handleToggleFolder(folderPath) {
@@ -907,6 +1063,28 @@ elements.lockSession.addEventListener("click", async () => {
 elements.unlockForm.addEventListener("submit", handleUnlockSubmit);
 elements.searchInput.addEventListener("input", handleSearchInput);
 elements.findDuplicates.addEventListener("click", handleFindDuplicates);
+elements.selectVisible.addEventListener("click", handleSelectVisible);
+elements.clearSelection.addEventListener("click", handleClearSelection);
+elements.batchMove.addEventListener("click", () => {
+  handleBatchMove().catch((error) => {
+    setMessage(error instanceof Error ? error.message : String(error), "error");
+  });
+});
+elements.batchAddTags.addEventListener("click", () => {
+  handleBatchAddTags().catch((error) => {
+    setMessage(error instanceof Error ? error.message : String(error), "error");
+  });
+});
+elements.batchRemoveTags.addEventListener("click", () => {
+  handleBatchRemoveTags().catch((error) => {
+    setMessage(error instanceof Error ? error.message : String(error), "error");
+  });
+});
+elements.batchDelete.addEventListener("click", () => {
+  handleBatchDelete().catch((error) => {
+    setMessage(error instanceof Error ? error.message : String(error), "error");
+  });
+});
 window.addEventListener("focus", () => {
   refreshView().catch((error) => {
     setMessage(error instanceof Error ? error.message : String(error), "error");
