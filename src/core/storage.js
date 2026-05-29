@@ -70,6 +70,7 @@ export async function updateVaultSettings(autoLockMinutes) {
   const nextRecord = {
     ...record,
     settings: {
+      ...record.settings,
       autoLockMinutes: normalizeAutoLockMinutes(autoLockMinutes)
     }
   };

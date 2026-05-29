@@ -46,7 +46,7 @@ export function createBookmark(payload) {
   };
 }
 
-export async function createVaultRecord(password, autoLockMinutes) {
+export async function createVaultRecord(password, autoLockMinutes, passwordHint = "") {
   const saltBytes = randomBytes(16);
   const key = await deriveKeyFromPassword(password, saltBytes);
 
@@ -57,7 +57,8 @@ export async function createVaultRecord(password, autoLockMinutes) {
     vault: await encryptJson([], key),
     meta: createVaultMeta([]),
     settings: {
-      autoLockMinutes: normalizeAutoLockMinutes(autoLockMinutes)
+      autoLockMinutes: normalizeAutoLockMinutes(autoLockMinutes),
+      passwordHint: typeof passwordHint === "string" ? passwordHint.trim() : ""
     }
   };
 
@@ -111,7 +112,7 @@ export async function encryptBookmarksWithEncodedKey(record, bookmarks, encodedK
   });
 }
 
-export async function changeVaultPassword(record, currentPassword, newPassword, newAutoLockMinutes) {
+export async function changeVaultPassword(record, currentPassword, newPassword, newAutoLockMinutes, newPasswordHint) {
   const unlocked = await unlockVaultRecord(record, currentPassword);
   const saltBytes = randomBytes(16);
   const newKey = await deriveKeyFromPassword(newPassword, saltBytes);
@@ -122,7 +123,9 @@ export async function changeVaultPassword(record, currentPassword, newPassword, 
     auth: await encryptString(AUTH_SENTINEL, newKey),
     vault: await encryptJson(unlocked.bookmarks, newKey),
     settings: {
-      autoLockMinutes: normalizeAutoLockMinutes(newAutoLockMinutes ?? unlocked.record.settings.autoLockMinutes)
+      ...unlocked.record.settings,
+      autoLockMinutes: normalizeAutoLockMinutes(newAutoLockMinutes ?? unlocked.record.settings.autoLockMinutes),
+      passwordHint: typeof newPasswordHint === "string" ? newPasswordHint.trim() : unlocked.record.settings.passwordHint
     }
   });
 

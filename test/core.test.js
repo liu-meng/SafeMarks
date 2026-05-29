@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 
 import { base64ToBytes, bytesToBase64 } from "../src/core/base64.js";
 import {
@@ -48,6 +49,14 @@ test("base64 helpers round-trip bytes", () => {
   const decoded = base64ToBytes(encoded);
 
   assert.deepEqual([...decoded], [...source]);
+});
+
+test("options page exposes script-required shortcut controls", () => {
+  const html = readFileSync(new URL("../src/options/index.html", import.meta.url), "utf8");
+
+  assert.match(html, /id="open-shortcut-settings"/);
+  assert.match(html, /id="shortcut-list"/);
+  assert.doesNotMatch(html, /(?:id|class|type|aria-live)=["“”][^"]*[“”]/);
 });
 
 test("vault can be created and unlocked with the same password", async () => {

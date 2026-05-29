@@ -17,6 +17,7 @@ import {
   encryptBookmarksWithEncodedKey,
   unlockVaultRecord
 } from "../core/vault.js";
+import { findInternalDuplicates } from "../core/dedup.js";
 import { formatDateTime, initializeI18n, localizeDocument, t } from "../shared/i18n.js";
 
 try {
@@ -37,6 +38,7 @@ const elements = {
   unlockPassword: document.querySelector("#unlock-password"),
   message: document.querySelector("#manager-message"),
   bookmarkCount: document.querySelector("#bookmark-count"),
+  findDuplicates: document.querySelector("#find-duplicates"),
   managerStatus: document.querySelector("#manager-status"),
   searchInput: document.querySelector("#search-input"),
   emptyState: document.querySelector("#empty-state"),
@@ -541,6 +543,7 @@ function renderView() {
     : [];
 
   elements.searchInput.disabled = !unlocked;
+  elements.findDuplicates.hidden = !unlocked;
   elements.searchInput.value = state.query;
   elements.bookmarkList.replaceChildren();
   elements.emptyState.hidden = true;
@@ -774,6 +777,79 @@ async function handleToggleFolder(folderPath) {
   renderView();
 }
 
+async function handleFindDuplicates() {
+  const groups = findInternalDuplicates(state.bookmarks);
+  if (groups.length === 0) {
+    setMessage(t("没有发现重复收藏。"), "info");
+    return;
+  }
+
+  const backdrop = document.createElement("div");
+  backdrop.className = "dedup-dialog-backdrop";
+
+  const dialog = document.createElement("div");
+  dialog.className = "dedup-dialog";
+  dialog.setAttribute("role", "dialog");
+  dialog.setAttribute("aria-modal", "true");
+  dialog.style.maxWidth = "520px";
+  dialog.style.maxHeight = "80vh";
+  dialog.style.overflowY = "auto";
+
+  const title = document.createElement("p");
+  title.className = "dedup-dialog-title";
+  title.textContent = t("发现 {count} 组重复收藏", { count: groups.length });
+  dialog.appendChild(title);
+
+  const panel = document.createElement("div");
+  panel.className = "dedup-panel";
+
+  for (const group of groups) {
+    const groupEl = document.createElement("div");
+    groupEl.className = "dedup-group";
+
+    for (const bm of group) {
+      const item = document.createElement("div");
+      item.className = "dedup-item";
+
+      const titleSpan = document.createElement("span");
+      titleSpan.className = "dedup-item-title";
+      titleSpan.textContent = bm.title;
+      titleSpan.title = bm.url;
+
+      const keepBtn = document.createElement("button");
+      keepBtn.type = "button";
+      keepBtn.className = "button-secondary";
+      keepBtn.style.fontSize = "12px";
+      keepBtn.style.padding = "2px 8px";
+      keepBtn.textContent = t("保留");
+      keepBtn.addEventListener("click", async () => {
+        const toDelete = group.filter((b) => b.id !== bm.id);
+        const next = state.bookmarks.filter((b) => !toDelete.some((d) => d.id === b.id));
+        backdrop.remove();
+        await persistBookmarks(next, t("已删除 {count} 条重复收藏。", { count: toDelete.length }));
+      });
+
+      item.appendChild(titleSpan);
+      item.appendChild(keepBtn);
+      groupEl.appendChild(item);
+    }
+
+    panel.appendChild(groupEl);
+  }
+
+  dialog.appendChild(panel);
+
+  const closeBtn = document.createElement("button");
+  closeBtn.type = "button";
+  closeBtn.className = "button-secondary";
+  closeBtn.textContent = t("关闭");
+  closeBtn.addEventListener("click", () => backdrop.remove());
+  dialog.appendChild(closeBtn);
+
+  backdrop.appendChild(dialog);
+  document.body.appendChild(backdrop);
+}
+
 async function handleUnlockSubmit(event) {
   event.preventDefault();
 
@@ -830,6 +906,7 @@ elements.lockSession.addEventListener("click", async () => {
 });
 elements.unlockForm.addEventListener("submit", handleUnlockSubmit);
 elements.searchInput.addEventListener("input", handleSearchInput);
+elements.findDuplicates.addEventListener("click", handleFindDuplicates);
 window.addEventListener("focus", () => {
   refreshView().catch((error) => {
     setMessage(error instanceof Error ? error.message : String(error), "error");

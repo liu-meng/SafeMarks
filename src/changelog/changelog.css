@@ -1,0 +1,34 @@
+.changelog-shell {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.changelog-hero {
+  background: linear-gradient(135deg, var(--panel) 0%, var(--bg) 100%);
+}
+
+.changelog-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.changelog-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.changelog-entry-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.changelog-changes {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.7;
+}

@@ -24,6 +24,7 @@ import {
   unlockVaultRecord
 } from "../core/vault.js";
 import { normalizeVaultRecord } from "../core/validation.js";
+import { findDuplicates } from "../core/dedup.js";
 import {
   getLanguagePreference,
   initializeI18n,
@@ -31,6 +32,7 @@ import {
   setLanguagePreference,
   t
 } from "../shared/i18n.js";
+import { createPasswordStrengthMeter } from "../shared/password-strength-meter.js";
 
 const MANAGER_PAGE_URL = chrome.runtime.getURL("src/manager/index.html");
 const SHORTCUT_SETTINGS_URL = "chrome://extensions/shortcuts";
@@ -84,6 +86,7 @@ const elements = {
   welcomeSetupForm: document.querySelector("#welcome-setup-form"),
   welcomeSetupPassword: document.querySelector("#welcome-setup-password"),
   welcomeSetupConfirm: document.querySelector("#welcome-setup-confirm"),
+  welcomeSetupHint: document.querySelector("#welcome-setup-hint"),
   welcomeSetupAutolock: document.querySelector("#welcome-setup-autolock"),
   welcomeImportBackup: document.querySelector("#welcome-import-backup"),
   welcomeImportStage: document.querySelector("#welcome-import-stage"),
@@ -123,6 +126,7 @@ const elements = {
   changePasswordForm: document.querySelector("#change-password-form"),
   changeCurrentPassword: document.querySelector("#change-current-password"),
   changeNewPassword: document.querySelector("#change-new-password"),
+  changePasswordHint: document.querySelector("#change-password-hint"),
   changeConfirmPassword: document.querySelector("#change-confirm-password"),
   changePasswordSubmit: document.querySelector("#change-password-submit"),
   changePasswordCancel: document.querySelector("#change-password-cancel"),
@@ -133,6 +137,15 @@ const elements = {
   resetConfirmSubmit: document.querySelector("#reset-confirm-submit"),
   resetConfirmCancel: document.querySelector("#reset-confirm-cancel")
 };
+
+const welcomeStrengthMeter = createPasswordStrengthMeter();
+elements.welcomeSetupPassword.after(welcomeStrengthMeter.element);
+elements.welcomeSetupPassword.addEventListener("input", (e) => welcomeStrengthMeter.update(e.target.value));
+
+const changeStrengthMeter = createPasswordStrengthMeter();
+elements.changeNewPassword.after(changeStrengthMeter.element);
+
+elements.changeNewPassword.addEventListener("input", (e) => changeStrengthMeter.update(e.target.value));
 
 const state = {
   hasVault: false,
@@ -400,6 +413,7 @@ function setChangePasswordVisible(visible) {
   }
 
   elements.changePasswordForm.reset();
+  changeStrengthMeter.update("");
   elements.changePasswordSubmit.disabled = false;
   elements.changePasswordCancel.disabled = false;
 }
@@ -586,22 +600,104 @@ async function runNativeImport(record, encodedKey) {
   }
 
   const currentBookmarks = await decryptBookmarksWithEncodedKey(record, encodedKey);
-  const nextRecord = await encryptBookmarksWithEncodedKey(
-    record,
-    [...currentBookmarks, ...importedBookmarks],
-    encodedKey
-  );
+  const { duplicates, unique } = findDuplicates(currentBookmarks, importedBookmarks);
 
+  let finalImport;
+  if (duplicates.length > 0) {
+    const choice = await showDedupDialog(duplicates.length, importedBookmarks.length);
+    if (choice === "skip") {
+      finalImport = unique;
+    } else if (choice === "overwrite") {
+      const dupUrls = new Set(duplicates.map((d) => normalizeUrlForDedup(d.incoming.url)));
+      const filtered = currentBookmarks.filter((bm) => !dupUrls.has(normalizeUrlForDedup(bm.url)));
+      const nextRecord = await encryptBookmarksWithEncodedKey(record, [...filtered, ...importedBookmarks], encodedKey);
+      await saveVaultRecord(nextRecord);
+      await syncFolderCatalogFromBookmarks([...filtered, ...importedBookmarks]);
+      await refreshView();
+      setMessage(
+        t("已从浏览器导入 {importedCount} 条收藏（覆盖 {dupCount} 条重复），跳过 {skippedCount} 条不支持的项目。", {
+          importedCount: importedBookmarks.length,
+          dupCount: duplicates.length,
+          skippedCount
+        }),
+        "success"
+      );
+      return;
+    } else {
+      finalImport = importedBookmarks;
+    }
+  } else {
+    finalImport = importedBookmarks;
+  }
+
+  const nextRecord = await encryptBookmarksWithEncodedKey(record, [...currentBookmarks, ...finalImport], encodedKey);
   await saveVaultRecord(nextRecord);
-  await syncFolderCatalogFromBookmarks([...currentBookmarks, ...importedBookmarks]);
+  await syncFolderCatalogFromBookmarks([...currentBookmarks, ...finalImport]);
   await refreshView();
   setMessage(
-    t("已从浏览器导入 {importedCount} 条收藏，跳过 {skippedCount} 条不支持的项目。", {
-      importedCount: importedBookmarks.length,
-      skippedCount
-    }),
+    duplicates.length > 0 && finalImport.length < importedBookmarks.length
+      ? t("已从浏览器导入 {importedCount} 条收藏（跳过 {dupCount} 条重复），跳过 {skippedCount} 条不支持的项目。", {
+          importedCount: finalImport.length,
+          dupCount: duplicates.length,
+          skippedCount
+        })
+      : t("已从浏览器导入 {importedCount} 条收藏，跳过 {skippedCount} 条不支持的项目。", {
+          importedCount: finalImport.length,
+          skippedCount
+        }),
     "success"
   );
+}
+
+function normalizeUrlForDedup(rawUrl) {
+  try {
+    const url = new URL(rawUrl);
+    return (url.origin + url.pathname.replace(/\/+$/, "") + url.search + url.hash).toLowerCase();
+  } catch {
+    return rawUrl.toLowerCase().trim();
+  }
+}
+
+function showDedupDialog(dupCount, totalCount) {
+  return new Promise((resolve) => {
+    const backdrop = document.createElement("div");
+    backdrop.className = "dedup-dialog-backdrop";
+
+    const dialog = document.createElement("div");
+    dialog.className = "dedup-dialog";
+    dialog.setAttribute("role", "dialog");
+    dialog.setAttribute("aria-modal", "true");
+
+    const title = document.createElement("p");
+    title.className = "dedup-dialog-title";
+    title.textContent = t("发现 {dupCount} 条重复（共 {totalCount} 条待导入）", { dupCount, totalCount });
+
+    const buttons = document.createElement("div");
+    buttons.className = "button-row";
+
+    const choices = [
+      { key: "skip", label: t("跳过重复"), cls: "button" },
+      { key: "overwrite", label: t("覆盖已有"), cls: "button-secondary" },
+      { key: "all", label: t("全部导入"), cls: "button-secondary" }
+    ];
+
+    for (const { key, label, cls } of choices) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = cls;
+      btn.textContent = label;
+      btn.addEventListener("click", () => {
+        backdrop.remove();
+        resolve(key);
+      });
+      buttons.appendChild(btn);
+    }
+
+    dialog.appendChild(title);
+    dialog.appendChild(buttons);
+    backdrop.appendChild(dialog);
+    document.body.appendChild(backdrop);
+  });
 }
 
 async function handleWelcomeSetupSubmit(event) {
@@ -621,7 +717,7 @@ async function handleWelcomeSetupSubmit(event) {
   }
 
   try {
-    const created = await createVaultRecord(password, elements.welcomeSetupAutolock.value);
+    const created = await createVaultRecord(password, elements.welcomeSetupAutolock.value, elements.welcomeSetupHint.value);
     const record = await saveVaultRecord(created.record);
     getUnlockedSession(await sessionSet(
       created.encodedKey,
@@ -808,7 +904,7 @@ async function handleChangePasswordSubmit(event) {
   elements.changePasswordCancel.disabled = true;
 
   try {
-    const changed = await changeVaultPassword(record, currentPassword, newPassword);
+    const changed = await changeVaultPassword(record, currentPassword, newPassword, undefined, elements.changePasswordHint.value);
     await saveVaultRecord(changed.record);
     await syncFolderCatalogFromBookmarks(changed.bookmarks);
     getUnlockedSession(await sessionSet(

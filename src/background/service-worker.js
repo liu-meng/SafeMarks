@@ -1,5 +1,10 @@
 import { AUTO_LOCK_ALARM } from "../core/constants.js";
-import { getQuickCaptureDraft } from "../core/quick-capture.js";
+import {
+  createBookmark,
+  decryptBookmarksWithEncodedKey,
+  encryptBookmarksWithEncodedKey
+} from "../core/vault.js";
+import { getQuickCaptureDraft, queueQuickCaptureBookmark, saveQuickCaptureBookmark } from "../core/quick-capture.js";
 import {
   clearAutoLockAlarm,
   clearSessionRecord,
@@ -11,7 +16,8 @@ import {
 } from "../core/session.js";
 import {
   hasStoredVaultRecord,
-  loadPendingQuickCaptures
+  loadPendingQuickCaptures,
+  loadVaultRecord
 } from "../core/storage.js";
 import { initializeI18n, t } from "../shared/i18n.js";
 
@@ -259,14 +265,73 @@ chrome.commands.onCommand.addListener(async (command) => {
 
 chrome.runtime.onInstalled.addListener((details) => {
   refreshActionBadge().catch(() => {});
+  setupContextMenus();
 
   if (details.reason === "install") {
     chrome.tabs.create({ url: PAGE_URLS.optionsWelcome }).catch(() => {});
+  }
+
+  if (details.reason === "update") {
+    chrome.storage.local.set({ showChangelogBanner: true }).catch(() => {});
   }
 });
 
 chrome.runtime.onStartup.addListener(() => {
   refreshActionBadge().catch(() => {});
+  setupContextMenus();
 });
 
 refreshActionBadge().catch(() => {});
+
+async function setupContextMenus() {
+  await ensureI18n();
+  chrome.contextMenus.removeAll(() => {
+    chrome.contextMenus.create({
+      id: "safemarks-save-page",
+      title: t("保存到 SafeMarks"),
+      contexts: ["page", "link"]
+    });
+    chrome.contextMenus.create({
+      id: "safemarks-save-selection",
+      title: t("保存到 SafeMarks（含选中文本）"),
+      contexts: ["selection"]
+    });
+  });
+}
+
+async function handleContextMenuClick(info, tab) {
+  await ensureI18n();
+
+  const hasVault = await hasStoredVaultRecord();
+  if (!hasVault) {
+    await flashActionStatus("error", t("SafeMarks 尚未初始化，无法快速收藏。"));
+    return;
+  }
+
+  const url = info.linkUrl || info.pageUrl;
+  if (!url) return;
+
+  const bookmark = createBookmark({
+    url,
+    title: tab?.title?.trim() || url,
+    note: info.selectionText?.trim() || "",
+    folderPath: ""
+  });
+
+  const sessionResult = await handleSessionStatus();
+  if (sessionResult.status === "unlocked" && sessionResult.session) {
+    const record = await loadVaultRecord();
+    await saveQuickCaptureBookmark({ bookmark, record, encodedKey: sessionResult.session.encodedKey });
+    await flashActionStatus("success", t("当前页已加密保存。"));
+  } else {
+    await queueQuickCaptureBookmark(bookmark);
+    await refreshActionBadge();
+    await flashActionStatus("success", t("已暂存，解锁后自动导入。"));
+  }
+}
+
+chrome.contextMenus.onClicked.addListener((info, tab) => {
+  handleContextMenuClick(info, tab).catch((error) => {
+    flashActionStatus("error", error instanceof Error ? error.message : String(error)).catch(() => {});
+  });
+});

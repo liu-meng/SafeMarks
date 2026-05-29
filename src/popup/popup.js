@@ -27,8 +27,11 @@ import {
   localizeDocument,
   t
 } from "../shared/i18n.js";
+import { getLatestVersion } from "../shared/changelog.js";
+import { createPasswordStrengthMeter } from "../shared/password-strength-meter.js";
 
 const MANAGER_PAGE_URL = chrome.runtime.getURL("src/manager/index.html");
+const CHANGELOG_PAGE_URL = chrome.runtime.getURL("src/changelog/index.html");
 const WELCOME_OPTIONS_URL = chrome.runtime.getURL("src/options/index.html?flow=welcome");
 
 try {
@@ -39,6 +42,9 @@ try {
 
 const elements = {
   message: document.querySelector("#global-message"),
+  changelogBanner: document.querySelector("#changelog-banner"),
+  changelogBannerText: document.querySelector("#changelog-banner-text"),
+  changelogBannerDismiss: document.querySelector("#changelog-banner-dismiss"),
   setupScreen: document.querySelector("#setup-screen"),
   lockedScreen: document.querySelector("#locked-screen"),
   unlockedScreen: document.querySelector("#unlocked-screen"),
@@ -46,11 +52,13 @@ const elements = {
   setupForm: document.querySelector("#setup-form"),
   setupPassword: document.querySelector("#setup-password"),
   setupConfirm: document.querySelector("#setup-confirm"),
+  setupHint: document.querySelector("#setup-hint"),
   setupAutolock: document.querySelector("#setup-autolock"),
   openImportOnboarding: document.querySelector("#open-import-onboarding"),
   unlockForm: document.querySelector("#unlock-form"),
   unlockPassword: document.querySelector("#unlock-password"),
   lockedBookmarkCount: document.querySelector("#locked-bookmark-count"),
+  lockedHint: document.querySelector("#locked-hint"),
   lockedQuickCaptureStatus: document.querySelector("#locked-quick-capture-status"),
   openManager: document.querySelector("#open-manager"),
   searchInput: document.querySelector("#search-input"),
@@ -84,6 +92,10 @@ const elements = {
   sessionBadge: document.querySelector("#session-badge"),
   lockNow: document.querySelector("#lock-now")
 };
+
+const setupStrengthMeter = createPasswordStrengthMeter();
+elements.setupPassword.after(setupStrengthMeter.element);
+elements.setupPassword.addEventListener("input", (e) => setupStrengthMeter.update(e.target.value));
 
 const state = {
   record: null,
@@ -133,6 +145,27 @@ function setMessage(text, tone = "info") {
   elements.message.hidden = false;
   elements.message.textContent = text;
   elements.message.className = `message message-${tone}`;
+}
+
+async function checkChangelogBanner() {
+  const { showChangelogBanner } = await chrome.storage.local.get("showChangelogBanner");
+  if (!showChangelogBanner) return;
+
+  const version = getLatestVersion();
+  elements.changelogBannerText.textContent = t("v{version} 已更新 — 查看更新日志", { version });
+  elements.changelogBanner.hidden = false;
+}
+
+function handleChangelogBannerClick() {
+  chrome.storage.local.remove("showChangelogBanner").catch(() => {});
+  elements.changelogBanner.hidden = true;
+  chrome.tabs.create({ url: CHANGELOG_PAGE_URL }).catch(() => {});
+}
+
+function handleChangelogBannerDismiss(event) {
+  event.stopPropagation();
+  chrome.storage.local.remove("showChangelogBanner").catch(() => {});
+  elements.changelogBanner.hidden = true;
 }
 
 async function copyTextToClipboard(text) {
@@ -210,6 +243,9 @@ function showScreen(screen) {
   if (screen === "locked") {
     updateLockedBookmarkCount();
     setLockedQuickCaptureStatus();
+    const hint = state.record?.settings?.passwordHint;
+    elements.lockedHint.hidden = !hint;
+    elements.lockedHint.textContent = hint ? t("密码提示：") + hint : "";
   }
 }
 
@@ -967,7 +1003,7 @@ async function handleSetupSubmit(event) {
   }
 
   try {
-    const created = await createVaultRecord(password, elements.setupAutolock.value);
+    const created = await createVaultRecord(password, elements.setupAutolock.value, elements.setupHint.value);
     const record = await saveVaultRecord(created.record);
     const session = getUnlockedSession(await sessionSet(
       created.encodedKey,
@@ -1196,6 +1232,8 @@ elements.unlockForm.addEventListener("submit", handleUnlockSubmit);
 elements.openSettings.addEventListener("click", () => chrome.runtime.openOptionsPage());
 elements.openManager.addEventListener("click", () => chrome.tabs.create({ url: MANAGER_PAGE_URL }));
 elements.emptyStateImport.addEventListener("click", openImportOnboarding);
+elements.changelogBanner.addEventListener("click", handleChangelogBannerClick);
+elements.changelogBannerDismiss.addEventListener("click", handleChangelogBannerDismiss);
 elements.saveCurrentPage.addEventListener("click", handleOpenSavePanel);
 elements.saveCurrentPageFavicon.addEventListener("error", () => setSaveTriggerFavicon(""));
 elements.closeSavePanel.addEventListener("click", resetSaveForm);
@@ -1217,3 +1255,4 @@ window.addEventListener("focus", () => {
 });
 
 initialize();
+checkChangelogBanner().catch(() => {});

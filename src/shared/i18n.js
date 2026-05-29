@@ -401,7 +401,46 @@ const EN_TRANSLATIONS = Object.freeze({
   "主密码已修改。": "Master password changed.",
   "关闭浏览器时锁定": "Lock on Browser Close",
   "已解锁 · 关闭浏览器时自动锁定": "Unlocked · locks when browser closes",
-  "已解锁 · 关闭浏览器时锁定": "Unlocked · lock on browser close"
+  "已解锁 · 关闭浏览器时锁定": "Unlocked · lock on browser close",
+
+  "更新日志": "Changelog",
+  "每次更新后的变更记录。": "A record of changes after each update.",
+  "v{version} 已更新 — 查看更新日志": "v{version} updated — view changelog",
+  "新增更新日志页面与版本更新提示横幅": "Added changelog page and version update banner",
+  "新增右键菜单，可从页面、链接或选中文本快速保存":
+    "Added context menu saving from pages, links, and selected text",
+  "新增密码强度提示和可选主密码提示": "Added password strength feedback and optional master password hint",
+  "导入浏览器书签时新增重复项处理": "Added duplicate handling when importing browser bookmarks",
+  "性能与稳定性优化": "Performance and stability improvements",
+  "设置页重构为双栏网格布局": "Refactored settings page to two-column grid layout",
+  "新增关闭浏览器时自动锁定选项": "Added lock-on-browser-close option",
+  "新增修改主密码功能": "Added change master password feature",
+  "弱": "Weak",
+  "中等": "Medium",
+  "强": "Strong",
+  "非常强": "Very Strong",
+  "密码提示（可选）": "Password Hint (optional)",
+  "帮助你回忆密码的提示，不要写密码本身": "A hint to help you remember, not the password itself",
+  "密码提示：": "Password hint: ",
+  "保存到 SafeMarks": "Save to SafeMarks",
+  "保存到 SafeMarks（含选中文本）": "Save to SafeMarks (with selection)",
+  "当前页已加密保存。": "Page saved and encrypted.",
+  "已暂存，解锁后自动导入。": "Queued for import after unlock.",
+  "查找重复收藏": "Find Duplicates",
+  "发现 {dupCount} 条重复（共 {totalCount} 条待导入）": "Found {dupCount} duplicates out of {totalCount} to import",
+  "跳过重复": "Skip Duplicates",
+  "覆盖已有": "Overwrite Existing",
+  "全部导入": "Import All",
+  "没有发现重复收藏。": "No duplicate bookmarks found.",
+  "发现 {count} 组重复收藏": "Found {count} groups of duplicate bookmarks",
+  "已从浏览器导入 {importedCount} 条收藏（覆盖 {dupCount} 条重复），跳过 {skippedCount} 条不支持的项目。":
+    "Imported {importedCount} bookmarks from the browser (overwrote {dupCount} duplicates) and skipped {skippedCount} unsupported items.",
+  "已从浏览器导入 {importedCount} 条收藏（跳过 {dupCount} 条重复），跳过 {skippedCount} 条不支持的项目。":
+    "Imported {importedCount} bookmarks from the browser (skipped {dupCount} duplicates) and skipped {skippedCount} unsupported items.",
+  "保留": "Keep",
+  "删除": "Delete",
+  "关闭": "Close",
+  "已删除 {count} 条重复收藏。": "Deleted {count} duplicate bookmarks."
 });
 
 function getChromeStorage() {

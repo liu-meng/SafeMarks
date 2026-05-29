@@ -74,7 +74,11 @@ export async function clearAutoLockAlarm() {
 }
 
 export async function sendSessionMessage(type, payload = {}) {
-  return chrome.runtime.sendMessage({ type, ...payload });
+  try {
+    return await chrome.runtime.sendMessage({ type, ...payload });
+  } catch {
+    return { status: "locked", session: null };
+  }
 }
 
 export async function sessionSet(encodedKey, autoLockMinutes) {

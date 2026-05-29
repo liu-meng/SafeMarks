@@ -94,7 +94,8 @@ export function normalizeVaultRecord(value) {
     auth: normalizeEncryptedBlob(value.auth, "Auth blob"),
     vault: normalizeEncryptedBlob(value.vault, "Vault blob"),
     settings: {
-      autoLockMinutes: normalizeAutoLockMinutes(value.settings?.autoLockMinutes)
+      autoLockMinutes: normalizeAutoLockMinutes(value.settings?.autoLockMinutes),
+      passwordHint: normalizeOptionalString(value.settings?.passwordHint)
     },
     meta: {
       bookmarkCount: normalizeBookmarkCount(value.meta?.bookmarkCount)

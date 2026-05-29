@@ -20,7 +20,7 @@ npm run package:extension
 执行后上传这个文件：
 
 ```text
-dist/safemarks-1.0.4.zip
+dist/safemarks-1.0.5.zip
 ```
 
 如果版本号变化，ZIP 文件名会随 `manifest.json` 中的 `version` 自动变化。
@@ -51,7 +51,7 @@ dist/safemarks-1.0.4.zip
 
 ### 4.2 Package
 
-- 上传文件：`dist/safemarks-1.0.4.zip`
+- 上传文件：`dist/safemarks-1.0.5.zip`
 - ZIP 内已有 `manifest.json`、`src/`、`assets/`、`_locales/`
 
 ### 4.3 Store Listing
@@ -111,6 +111,7 @@ Store and manage personal browser bookmarks in a local encrypted vault.
 | `storage` | Stores the encrypted vault, folder catalog, local settings, and pending quick-capture records on the device. |
 | `alarms` | Auto-locks the vault after the configured timeout. |
 | `activeTab` | Reads the current tab's title and URL only when the user explicitly saves the current page or starts quick capture. |
+| `contextMenus` | Adds user-triggered right-click menu items for saving pages, links, or selected text into SafeMarks. |
 | `bookmarks` | Optional permission used only when the user explicitly requests browser-bookmark import. |
 
 数据披露建议按下面原则填写：
@@ -164,7 +165,7 @@ No account or paid service is required.
 
 ### 5.1 Package
 
-- 上传文件：`dist/safemarks-1.0.4.zip`
+- 上传文件：`dist/safemarks-1.0.5.zip`
 - Edge 会把上传的 ZIP 转成商店分发格式
 
 ### 5.2 Properties / Listing

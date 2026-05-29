@@ -22,6 +22,11 @@
 
       <p id="global-message" class="message message-info" hidden></p>
 
+      <div id="changelog-banner" class="changelog-banner message message-info" hidden>
+        <span id="changelog-banner-text"></span>
+        <button id="changelog-banner-dismiss" class="ghost-button changelog-banner-close" type="button" aria-label="关闭">&times;</button>
+      </div>
+
       <section id="setup-screen" class="panel panel-pad stack" hidden>
         <div class="stack panel-tight">
           <h2>先设置主密码</h2>
@@ -36,6 +41,10 @@
           <label class="label">
             <span>确认主密码</span>
             <input id="setup-confirm" class="input" type="password" autocomplete="new-password" required />
+          </label>
+          <label class="label">
+            <span>密码提示（可选）</span>
+            <input id="setup-hint" class="input" type="text" placeholder="帮助你回忆密码的提示，不要写密码本身" />
           </label>
           <label class="label">
             <span>自动锁定</span>
@@ -59,6 +68,7 @@
           <h2>保险库已锁定</h2>
           <p id="locked-bookmark-count" class="badge">收藏条数将在首次解锁后同步</p>
           <p class="helper-text">输入主密码后即可查看收藏，并继续保存当前页。</p>
+          <p id="locked-hint" class="helper-text" hidden></p>
           <p id="locked-quick-capture-status" class="helper-text" hidden></p>
         </div>
         <form id="unlock-form" class="stack">
