@@ -1,8 +1,10 @@
 import {
+  BACKUP_REMINDER_STORAGE_KEY,
   FOLDER_CATALOG_STORAGE_KEY,
   PENDING_QUICK_CAPTURES_STORAGE_KEY,
   STORAGE_KEYS
 } from "./constants.js";
+import { normalizeBackupReminderState } from "./backup.js";
 import {
   normalizeAutoLockMinutes,
   normalizeBookmarkList,
@@ -30,6 +32,10 @@ function readPendingQuickCaptureData() {
 
 function readFolderCatalogData() {
   return requireChromeStorage().get(FOLDER_CATALOG_STORAGE_KEY);
+}
+
+function readBackupReminderData() {
+  return requireChromeStorage().get(BACKUP_REMINDER_STORAGE_KEY);
 }
 
 export function hasVaultRecordData(stored) {
@@ -81,6 +87,7 @@ export async function updateVaultSettings(autoLockMinutes) {
 
 export async function clearVaultRecord() {
   await requireChromeStorage().remove([
+    BACKUP_REMINDER_STORAGE_KEY,
     FOLDER_CATALOG_STORAGE_KEY,
     ...STORAGE_KEYS,
     PENDING_QUICK_CAPTURES_STORAGE_KEY
@@ -124,4 +131,17 @@ export async function saveFolderCatalog(folderPaths) {
 
 export async function clearFolderCatalog() {
   await requireChromeStorage().remove(FOLDER_CATALOG_STORAGE_KEY);
+}
+
+export async function loadBackupReminderState() {
+  const stored = await readBackupReminderData();
+  return normalizeBackupReminderState(stored[BACKUP_REMINDER_STORAGE_KEY]);
+}
+
+export async function saveBackupReminderState(state) {
+  const normalized = normalizeBackupReminderState(state);
+  await requireChromeStorage().set({
+    [BACKUP_REMINDER_STORAGE_KEY]: normalized
+  });
+  return normalized;
 }

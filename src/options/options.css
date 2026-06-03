@@ -150,6 +150,13 @@
   gap: 12px;
 }
 
+.backup-reminder {
+  padding: 14px;
+  border: 1px solid rgba(29, 122, 109, 0.18);
+  border-radius: var(--radius-md);
+  background: rgba(29, 122, 109, 0.07);
+}
+
 .reset-confirm-panel {
   gap: 10px;
   padding: 14px;

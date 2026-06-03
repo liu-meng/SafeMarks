@@ -13,6 +13,12 @@ import {
 } from "../src/core/vault.js";
 import { getBookmarkSearchResults } from "../src/core/bookmark-search.js";
 import {
+  BACKUP_REMINDER_INTERVAL_MS,
+  createRestorePreflight,
+  getBackupReminderStatus,
+  normalizeBackupReminderState
+} from "../src/core/backup.js";
+import {
   addTagsToBookmarks,
   deleteBookmarksByIds,
   moveBookmarksToFolder,
@@ -21,9 +27,12 @@ import {
 import { flattenNativeBookmarkTree } from "../src/core/native-bookmarks.js";
 import { normalizeBookmarkTags } from "../src/core/tags.js";
 import {
+  clearVaultRecord,
   hasVaultRecordData,
+  loadBackupReminderState,
   loadFolderCatalog,
   loadPendingQuickCaptures,
+  saveBackupReminderState,
   savePendingQuickCaptures,
   saveVaultRecord
 } from "../src/core/storage.js";
@@ -63,6 +72,10 @@ test("options page exposes script-required shortcut controls", () => {
 
   assert.match(html, /id="open-shortcut-settings"/);
   assert.match(html, /id="shortcut-list"/);
+  assert.match(html, /id="backup-last-export"/);
+  assert.match(html, /id="backup-reminder"/);
+  assert.match(html, /id="backup-reminder-export"/);
+  assert.match(html, /id="backup-reminder-dismiss"/);
   assert.doesNotMatch(html, /(?:id|class|type|aria-live)=["“”][^"]*[“”]/);
 });
 
@@ -822,6 +835,128 @@ function createChromeStorageMock(initialLocal = {}, tabs = []) {
     }
   };
 }
+
+test("backup reminder state normalizes and becomes due after the reminder interval", () => {
+  const now = 1710000000000;
+
+  assert.deepEqual(
+    normalizeBackupReminderState({
+      lastEncryptedExportAt: "bad",
+      dismissedAt: -1
+    }),
+    {
+      lastEncryptedExportAt: null,
+      dismissedAt: null
+    }
+  );
+
+  assert.equal(
+    getBackupReminderStatus({
+      hasVault: false,
+      bookmarkCount: 10,
+      reminderState: null,
+      now
+    }).shouldShow,
+    false
+  );
+  assert.equal(
+    getBackupReminderStatus({
+      hasVault: true,
+      bookmarkCount: 0,
+      reminderState: null,
+      now
+    }).shouldShow,
+    false
+  );
+  assert.equal(
+    getBackupReminderStatus({
+      hasVault: true,
+      bookmarkCount: 1,
+      reminderState: null,
+      now
+    }).reason,
+    "never-exported"
+  );
+  assert.equal(
+    getBackupReminderStatus({
+      hasVault: true,
+      bookmarkCount: 1,
+      reminderState: {
+        lastEncryptedExportAt: now - BACKUP_REMINDER_INTERVAL_MS + 1
+      },
+      now
+    }).shouldShow,
+    false
+  );
+  assert.equal(
+    getBackupReminderStatus({
+      hasVault: true,
+      bookmarkCount: 1,
+      reminderState: {
+        lastEncryptedExportAt: now - BACKUP_REMINDER_INTERVAL_MS
+      },
+      now
+    }).reason,
+    "stale-export"
+  );
+  assert.equal(
+    getBackupReminderStatus({
+      hasVault: true,
+      bookmarkCount: 1,
+      reminderState: {
+        dismissedAt: now - 100
+      },
+      now
+    }).shouldShow,
+    false
+  );
+});
+
+test("restore preflight validates encrypted vault metadata", async () => {
+  const created = await createVaultRecord("vault-pass", 0, "hint");
+  const preflight = createRestorePreflight(created.record, {
+    hasExistingVault: true
+  });
+
+  assert.equal(preflight.record.version, 1);
+  assert.equal(preflight.hasExistingVault, true);
+  assert.equal(preflight.version, 1);
+  assert.equal(preflight.bookmarkCount, 0);
+  assert.equal(preflight.autoLockMinutes, 0);
+  assert.equal(preflight.hasPasswordHint, true);
+  assert.throws(
+    () => createRestorePreflight({ version: 999 }),
+    /不是有效的 SafeMarks 加密备份|not a valid SafeMarks encrypted backup/
+  );
+});
+
+test("backup reminder state persists through local storage and is cleared with vault data", async () => {
+  const originalChrome = globalThis.chrome;
+  const { chrome } = createChromeStorageMock();
+
+  globalThis.chrome = chrome;
+
+  try {
+    await saveBackupReminderState({
+      lastEncryptedExportAt: 1710000000000,
+      dismissedAt: 1710000001000
+    });
+
+    assert.deepEqual(await loadBackupReminderState(), {
+      lastEncryptedExportAt: 1710000000000,
+      dismissedAt: 1710000001000
+    });
+
+    await clearVaultRecord();
+
+    assert.deepEqual(await loadBackupReminderState(), {
+      lastEncryptedExportAt: null,
+      dismissedAt: null
+    });
+  } finally {
+    globalThis.chrome = originalChrome;
+  }
+});
 
 test("quick capture can queue current page without unlock", async () => {
   const originalChrome = globalThis.chrome;

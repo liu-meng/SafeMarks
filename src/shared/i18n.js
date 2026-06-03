@@ -157,6 +157,19 @@ const EN_TRANSLATIONS = Object.freeze({
   "导出加密 JSON": "Export Encrypted JSON",
   "导出明文 JSON": "Export Plain JSON",
   "导入加密 JSON": "Import Encrypted JSON",
+  "上次加密备份：暂无记录": "Last encrypted backup: no record yet",
+  "上次加密备份：{timestamp}": "Last encrypted backup: {timestamp}",
+  "暂无记录": "No record yet",
+  "建议导出加密备份": "Export an Encrypted Backup",
+  "建议立即导出加密备份": "Export an Encrypted Backup Now",
+  "SafeMarks 只保存本地密文。请定期导出加密 JSON，避免浏览器数据丢失后无法恢复。":
+    "SafeMarks only stores local ciphertext. Export encrypted JSON regularly so you can recover if browser data is lost.",
+  "当前保险库已有收藏，但还没有加密备份记录。导出加密 JSON 后，即使浏览器本地数据丢失也能恢复。":
+    "This vault has bookmarks but no encrypted backup record yet. Export encrypted JSON so you can recover even if local browser data is lost.",
+  "距离上次加密备份已超过 {days} 天":
+    "It has been more than {days} days since the last encrypted backup",
+  "立即导出加密备份": "Export Encrypted Backup Now",
+  "稍后提醒": "Remind Me Later",
   "重置": "Reset",
   "会删除本地所有密文和当前会话密钥，操作不可撤销。":
     "Delete all local ciphertext data and the current session key. This action cannot be undone.",
@@ -354,11 +367,30 @@ const EN_TRANSLATIONS = Object.freeze({
   "自动锁定时间已更新。": "Auto-lock time updated.",
   "当前没有可导出的保险库。": "There is no vault to export.",
   "已导出加密备份。": "Encrypted backup exported.",
+  "已关闭本次备份提醒。": "This backup reminder was dismissed.",
   "导出明文前，先在当前页输入主密码解锁。":
     "Before exporting plain JSON, enter your master password on this page to unlock.",
   "明文导出会生成可直接阅读的 JSON，确认继续？":
     "Plain export creates directly readable JSON. Continue?",
   "已导出明文 JSON，请妥善保管。": "Plain JSON exported. Store it securely.",
+  "这不是有效的 SafeMarks 加密备份。":
+    "This is not a valid SafeMarks encrypted backup.",
+  "加密备份预检已通过。": "Encrypted backup preflight passed.",
+  "版本：{version}": "Version: {version}",
+  "收藏数：{count}": "Bookmarks: {count}",
+  "自动锁定：{value}": "Auto lock: {value}",
+  "{minutes} 分钟": "{minutes} minutes",
+  "密码提示：{value}": "Password hint: {value}",
+  "有": "Yes",
+  "无": "No",
+  "未知": "Unknown",
+  "导入会覆盖当前本地保险库，并清空待写入的快速收藏。":
+    "Importing will overwrite the current local vault and clear queued quick captures.",
+  "导入会创建本地保险库，并清空待写入的快速收藏。":
+    "Importing will create a local vault and clear queued quick captures.",
+  "导入后需要使用该备份的原主密码解锁。确认继续？":
+    "After import, unlock with the original master password for this backup. Continue?",
+  "已取消导入加密备份。": "Encrypted backup import canceled.",
   "加密备份已导入，可直接在当前页输入原密码解锁。":
     "Encrypted backup imported. Enter the original password on this page to unlock.",
   "导入失败。": "Import failed.",
@@ -439,6 +471,14 @@ const EN_TRANSLATIONS = Object.freeze({
     "Added context menu saving from pages, links, and selected text",
   "新增密码强度提示和可选主密码提示": "Added password strength feedback and optional master password hint",
   "导入浏览器书签时新增重复项处理": "Added duplicate handling when importing browser bookmarks",
+  "新增可视化标签，可在保存、快速收藏和管理页编辑标签":
+    "Added visual tags that can be edited while saving, quick capturing, and managing bookmarks",
+  "升级收藏搜索，支持按标题、URL、目录、备注和标签进行模糊搜索":
+    "Upgraded bookmark search with fuzzy matching across title, URL, folder, note, and tags",
+  "管理页新增批量选择，可批量移动目录、添加或移除标签、删除收藏":
+    "Added batch selection in the manager for moving folders, adding or removing tags, and deleting bookmarks",
+  "设置页新增加密备份提醒和导入恢复预检":
+    "Added encrypted backup reminders and restore preflight checks on the settings page",
   "性能与稳定性优化": "Performance and stability improvements",
   "设置页重构为双栏网格布局": "Refactored settings page to two-column grid layout",
   "新增关闭浏览器时自动锁定选项": "Added lock-on-browser-close option",

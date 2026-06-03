@@ -277,6 +277,17 @@
             <button id="export-plain" class="button-secondary" type="button">导出明文 JSON</button>
             <button id="import-encrypted-trigger" class="button" type="button">导入加密 JSON</button>
           </div>
+          <p id="backup-last-export" class="helper-text">上次加密备份：暂无记录</p>
+          <section id="backup-reminder" class="backup-reminder stack" hidden>
+            <div class="stack panel-tight">
+              <strong id="backup-reminder-title">建议导出加密备份</strong>
+              <p id="backup-reminder-copy" class="helper-text">SafeMarks 只保存本地密文。请定期导出加密 JSON，避免浏览器数据丢失后无法恢复。</p>
+            </div>
+            <div class="button-row">
+              <button id="backup-reminder-export" class="button" type="button">立即导出加密备份</button>
+              <button id="backup-reminder-dismiss" class="ghost-button" type="button">稍后提醒</button>
+            </div>
+          </section>
           <input id="import-encrypted-file" type="file" accept="application/json" hidden />
         </section>
 

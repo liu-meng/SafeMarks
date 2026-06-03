@@ -4,6 +4,7 @@ export const DEFAULT_AUTO_LOCK_MINUTES = 15;
 export const STORAGE_KEYS = ["version", "salt", "auth", "vault", "settings", "meta"];
 export const FOLDER_CATALOG_STORAGE_KEY = "folderCatalog";
 export const PENDING_QUICK_CAPTURES_STORAGE_KEY = "pendingQuickCaptures";
+export const BACKUP_REMINDER_STORAGE_KEY = "backupReminder";
 export const SESSION_STORAGE_KEY = "safeMarksSession";
 export const AUTO_LOCK_ALARM = "safeMarks-auto-lock";
 export const VERSION = 1;

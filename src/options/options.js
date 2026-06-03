@@ -1,11 +1,18 @@
 import { downloadJson, readJsonFile } from "../core/download.js";
+import {
+  BACKUP_REMINDER_INTERVAL_DAYS,
+  createRestorePreflight,
+  getBackupReminderStatus
+} from "../core/backup.js";
 import { syncFolderCatalogFromBookmarks } from "../core/folder-catalog.js";
 import { flushPendingQuickCaptures } from "../core/quick-capture.js";
 import {
   clearFolderCatalog,
   clearPendingQuickCaptures,
   clearVaultRecord,
+  loadBackupReminderState,
   loadVaultRecord,
+  saveBackupReminderState,
   saveVaultRecord,
   updateVaultSettings
 } from "../core/storage.js";
@@ -23,10 +30,10 @@ import {
   encryptBookmarksWithEncodedKey,
   unlockVaultRecord
 } from "../core/vault.js";
-import { normalizeVaultRecord } from "../core/validation.js";
 import { findDuplicates } from "../core/dedup.js";
 import {
   getLanguagePreference,
+  formatDateTime,
   initializeI18n,
   localizeDocument,
   setLanguagePreference,
@@ -110,6 +117,12 @@ const elements = {
   saveSettings: document.querySelector("#save-settings"),
   exportEncrypted: document.querySelector("#export-encrypted"),
   exportPlain: document.querySelector("#export-plain"),
+  backupLastExport: document.querySelector("#backup-last-export"),
+  backupReminder: document.querySelector("#backup-reminder"),
+  backupReminderTitle: document.querySelector("#backup-reminder-title"),
+  backupReminderCopy: document.querySelector("#backup-reminder-copy"),
+  backupReminderExport: document.querySelector("#backup-reminder-export"),
+  backupReminderDismiss: document.querySelector("#backup-reminder-dismiss"),
   importTrigger: document.querySelector("#import-encrypted-trigger"),
   importNative: document.querySelector("#import-native-trigger"),
   importNativeHint: document.querySelector("#import-native-hint"),
@@ -152,7 +165,8 @@ const state = {
   flowMode: parseFlowMode(),
   sessionState: "locked",
   pendingAction: null,
-  welcomeStage: WELCOME_STAGES.HIDDEN
+  welcomeStage: WELCOME_STAGES.HIDDEN,
+  backupReminderState: null
 };
 
 function parseFlowMode() {
@@ -271,6 +285,83 @@ function openManagerPage() {
 
 function formatQuickCaptureImportMessage(importedCount) {
   return t("已自动导入 {count} 条快速收藏。", { count: importedCount });
+}
+
+function formatBackupTimestamp(timestamp) {
+  if (!timestamp) {
+    return t("暂无记录");
+  }
+
+  return formatDateTime(timestamp, {
+    dateStyle: "medium",
+    timeStyle: "short"
+  });
+}
+
+function formatBackupCount(count) {
+  return count === null ? t("未知") : String(count);
+}
+
+function formatAutoLockSummary(minutes) {
+  return minutes === 0
+    ? t("关闭浏览器时锁定")
+    : t("{minutes} 分钟", { minutes });
+}
+
+function formatRestorePreflightMessage(preflight) {
+  const overwriteWarning = preflight.hasExistingVault
+    ? t("导入会覆盖当前本地保险库，并清空待写入的快速收藏。")
+    : t("导入会创建本地保险库，并清空待写入的快速收藏。");
+
+  return [
+    t("加密备份预检已通过。"),
+    "",
+    t("版本：{version}", { version: preflight.version }),
+    t("收藏数：{count}", { count: formatBackupCount(preflight.bookmarkCount) }),
+    t("自动锁定：{value}", {
+      value: formatAutoLockSummary(preflight.autoLockMinutes)
+    }),
+    t("密码提示：{value}", {
+      value: preflight.hasPasswordHint ? t("有") : t("无")
+    }),
+    "",
+    overwriteWarning,
+    t("导入后需要使用该备份的原主密码解锁。确认继续？")
+  ].join("\n");
+}
+
+async function renderBackupReminder(record) {
+  const reminderState = await loadBackupReminderState();
+  state.backupReminderState = reminderState;
+
+  elements.backupLastExport.textContent = t("上次加密备份：{timestamp}", {
+    timestamp: formatBackupTimestamp(reminderState.lastEncryptedExportAt)
+  });
+
+  const status = getBackupReminderStatus({
+    hasVault: Boolean(record),
+    bookmarkCount: getVaultBookmarkCount(record),
+    reminderState
+  });
+
+  elements.backupReminder.hidden = !status.shouldShow;
+  if (!status.shouldShow) {
+    return;
+  }
+
+  if (status.reason === "never-exported") {
+    elements.backupReminderTitle.textContent = t("建议立即导出加密备份");
+    elements.backupReminderCopy.textContent =
+      t("当前保险库已有收藏，但还没有加密备份记录。导出加密 JSON 后，即使浏览器本地数据丢失也能恢复。");
+    return;
+  }
+
+  elements.backupReminderTitle.textContent =
+    t("距离上次加密备份已超过 {days} 天", {
+      days: BACKUP_REMINDER_INTERVAL_DAYS
+    });
+  elements.backupReminderCopy.textContent =
+    t("SafeMarks 只保存本地密文。请定期导出加密 JSON，避免浏览器数据丢失后无法恢复。");
 }
 
 async function refreshQuickCaptureBadge() {
@@ -561,6 +652,7 @@ async function refreshView(message = "") {
   }
 
   renderWelcomePanel(record);
+  await renderBackupReminder(record);
 
   if (message) {
     setMessage(
@@ -764,8 +856,28 @@ async function handleExportEncrypted() {
       throw new Error(t("当前没有可导出的保险库。"));
     }
 
-    downloadJson(`safemarks-encrypted-${Date.now()}.json`, record);
+    const exportedAt = Date.now();
+    downloadJson(`safemarks-encrypted-${exportedAt}.json`, record);
+    await saveBackupReminderState({
+      ...state.backupReminderState,
+      lastEncryptedExportAt: exportedAt,
+      dismissedAt: null
+    });
+    await renderBackupReminder(record);
     setMessage(t("已导出加密备份。"), "success");
+  } catch (error) {
+    setMessage(error instanceof Error ? error.message : String(error), "error");
+  }
+}
+
+async function handleBackupReminderDismiss() {
+  try {
+    await saveBackupReminderState({
+      ...state.backupReminderState,
+      dismissedAt: Date.now()
+    });
+    await renderBackupReminder(await loadVaultRecord());
+    setMessage(t("已关闭本次备份提醒。"), "info");
   } catch (error) {
     setMessage(error instanceof Error ? error.message : String(error), "error");
   }
@@ -801,8 +913,23 @@ async function handleImport(event) {
   }
 
   try {
-    const record = normalizeVaultRecord(await readJsonFile(file));
-    await saveVaultRecord(record);
+    let payload;
+    try {
+      payload = await readJsonFile(file);
+    } catch {
+      throw new Error(t("这不是有效的 SafeMarks 加密备份。"));
+    }
+
+    const preflight = createRestorePreflight(payload, {
+      hasExistingVault: Boolean(await loadVaultRecord())
+    });
+    const confirmed = window.confirm(formatRestorePreflightMessage(preflight));
+    if (!confirmed) {
+      setMessage(t("已取消导入加密备份。"), "info");
+      return;
+    }
+
+    await saveVaultRecord(preflight.record);
     await clearFolderCatalog();
     await clearPendingQuickCaptures();
     await sessionLock();
@@ -977,6 +1104,8 @@ elements.saveLanguage.addEventListener("click", () => {
 });
 elements.saveSettings.addEventListener("click", handleSaveSettings);
 elements.exportEncrypted.addEventListener("click", handleExportEncrypted);
+elements.backupReminderExport.addEventListener("click", handleExportEncrypted);
+elements.backupReminderDismiss.addEventListener("click", handleBackupReminderDismiss);
 elements.exportPlain.addEventListener("click", handleExportPlain);
 elements.importTrigger.addEventListener("click", () => elements.importFile.click());
 elements.importNative.addEventListener("click", handleImportNativeBookmarks);
