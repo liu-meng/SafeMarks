@@ -26,6 +26,7 @@ import {
 import { findInternalDuplicates } from "../core/dedup.js";
 import { formatDateTime, initializeI18n, localizeDocument, t } from "../shared/i18n.js";
 import { createTagChipsInput, createTagList } from "../shared/tag-chips.js";
+import { confirmDialog, showMessage } from "../shared/ui.js";
 
 try {
   await initializeI18n();
@@ -111,16 +112,7 @@ function getUnlockedSession(response) {
 }
 
 function setMessage(text, tone = "info") {
-  if (!text) {
-    elements.message.hidden = true;
-    elements.message.textContent = "";
-    elements.message.className = "message message-info";
-    return;
-  }
-
-  elements.message.hidden = false;
-  elements.message.textContent = text;
-  elements.message.className = `message message-${tone}`;
+  showMessage(elements.message, text, tone);
 }
 
 async function copyTextToClipboard(text) {
@@ -815,8 +807,14 @@ async function handleDeleteBookmark(bookmarkId) {
   }
 
   await requireUnlockedSession(t("删除收藏前，先在当前页输入主密码解锁。"));
-  const confirmed = window.confirm(t("确认删除“{title}”？", { title: bookmark.title }));
+  const confirmed = await confirmDialog({
+    title: t("确认删除收藏？"),
+    body: t("将删除“{title}”。此操作不可撤销。", { title: bookmark.title }),
+    confirmLabel: t("删除"),
+    tone: "danger"
+  });
   if (!confirmed) {
+    setMessage(t("已取消删除。"), "info");
     return;
   }
 
@@ -839,13 +837,17 @@ async function handleDeleteFolder(folderPath) {
     throw new Error(t("要删除的文件夹不存在。"));
   }
 
-  const confirmed = window.confirm(
-    t("确认删除文件夹“{folderPath}”及其子目录中的 {count} 条收藏？", {
+  const confirmed = await confirmDialog({
+    title: t("确认删除文件夹？"),
+    body: t("将删除文件夹“{folderPath}”及其子目录中的 {count} 条收藏。此操作不可撤销。", {
       folderPath,
       count: removedCount
-    })
-  );
+    }),
+    confirmLabel: t("删除文件夹"),
+    tone: "danger"
+  });
   if (!confirmed) {
+    setMessage(t("已取消删除文件夹。"), "info");
     return;
   }
 
@@ -909,10 +911,16 @@ async function handleBatchDelete() {
     return;
   }
 
-  const confirmed = window.confirm(t("确认删除选中的 {count} 条收藏？", {
-    count: selectedIds.length
-  }));
+  const confirmed = await confirmDialog({
+    title: t("确认批量删除？"),
+    body: t("将删除选中的 {count} 条收藏。此操作不可撤销。", {
+      count: selectedIds.length
+    }),
+    confirmLabel: t("删除选中收藏"),
+    tone: "danger"
+  });
   if (!confirmed) {
+    setMessage(t("已取消批量删除。"), "info");
     return;
   }
 

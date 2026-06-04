@@ -40,6 +40,7 @@ import {
   t
 } from "../shared/i18n.js";
 import { createPasswordStrengthMeter } from "../shared/password-strength-meter.js";
+import { confirmDialog, showMessage } from "../shared/ui.js";
 
 const MANAGER_PAGE_URL = chrome.runtime.getURL("src/manager/index.html");
 const SHORTCUT_SETTINGS_URL = "chrome://extensions/shortcuts";
@@ -99,9 +100,12 @@ const elements = {
   welcomeImportStage: document.querySelector("#welcome-import-stage"),
   welcomeImportCopy: document.querySelector("#welcome-import-copy"),
   welcomeImportTrigger: document.querySelector("#welcome-import-trigger"),
+  welcomeImportSkip: document.querySelector("#welcome-import-skip"),
   welcomeCompleteStage: document.querySelector("#welcome-complete-stage"),
   welcomeCompleteCopy: document.querySelector("#welcome-complete-copy"),
   welcomeCompleteOpenManager: document.querySelector("#welcome-complete-open-manager"),
+  welcomeCompleteOpenPopup: document.querySelector("#welcome-complete-open-popup"),
+  welcomeCompleteExportBackup: document.querySelector("#welcome-complete-export-backup"),
   optionsHero: document.querySelector("#options-hero"),
   openManager: document.querySelector("#open-manager"),
   message: document.querySelector("#options-message"),
@@ -166,6 +170,7 @@ const state = {
   sessionState: "locked",
   pendingAction: null,
   welcomeStage: WELCOME_STAGES.HIDDEN,
+  welcomeImportSkipped: false,
   backupReminderState: null
 };
 
@@ -184,16 +189,7 @@ function getUnlockedSession(response) {
 }
 
 function setMessage(text, tone = "info") {
-  if (!text) {
-    elements.message.hidden = true;
-    elements.message.textContent = "";
-    elements.message.className = "message message-info";
-    return;
-  }
-
-  elements.message.hidden = false;
-  elements.message.textContent = text;
-  elements.message.className = `message message-${tone}`;
+  showMessage(elements.message, text, tone);
 }
 
 function getVaultBookmarkCount(record) {
@@ -214,7 +210,7 @@ function getWelcomeStage(record) {
     return WELCOME_STAGES.HIDDEN;
   }
 
-  return getVaultBookmarkCount(record) > 0
+  return getVaultBookmarkCount(record) > 0 || state.welcomeImportSkipped
     ? WELCOME_STAGES.COMPLETE
     : WELCOME_STAGES.IMPORT;
 }
@@ -250,7 +246,7 @@ function renderWelcomePanel(record) {
       state.flowMode === FLOW_MODES.WELCOME
         ? t("先设置主密码，再把浏览器里已有的书签带进来；SafeMarks 不需要账号，也不提供云同步。")
         : t("设置好主密码后，就能在当前页导入浏览器书签或恢复加密备份。");
-    elements.welcomeStepBadge.textContent = t("第 1 步 / 2");
+    elements.welcomeStepBadge.textContent = t("第 1 步 / 3");
     return;
   }
 
@@ -258,7 +254,7 @@ function renderWelcomePanel(record) {
     elements.welcomeEyebrow.textContent = t("下一步");
     elements.welcomeTitle.textContent = t("导入现有书签");
     elements.welcomeDescription.textContent = t("现在可以把浏览器里已有的书签带进来了。");
-    elements.welcomeStepBadge.textContent = t("第 2 步 / 2");
+    elements.welcomeStepBadge.textContent = t("第 2 步 / 3");
     elements.welcomeImportCopy.textContent =
       state.sessionState === "unlocked"
         ? t("当前已解锁。建议先导入浏览器书签，原有目录会一起保留。")
@@ -270,17 +266,26 @@ function renderWelcomePanel(record) {
   elements.welcomeTitle.textContent = t("可以开始用了");
   elements.welcomeDescription.textContent =
     state.sessionState === "unlocked"
-      ? t("现有书签已准备好。接下来可以去管理页整理，或用工具栏保存当前页。")
-      : t("数据已经准备好。先在本页解锁，再继续整理收藏。");
-  elements.welcomeStepBadge.textContent = t("已完成");
+      ? t("SafeMarks 已准备好。接下来可以保存当前页、使用快速收藏，并定期导出加密备份。")
+      : t("SafeMarks 已准备好。先在本页解锁，再继续整理收藏或导出备份。");
+  elements.welcomeStepBadge.textContent = t("第 3 步 / 3");
   elements.welcomeCompleteCopy.textContent =
     state.sessionState === "unlocked"
-      ? t("现有书签已准备好。接下来可以去管理页整理，或用工具栏保存当前页。")
-      : t("数据已经准备好。先在本页解锁，再继续整理收藏。");
+      ? t("主密码无法找回；锁定状态下的快速收藏会先临时未加密暂存，解锁后自动写入保险库。建议现在导出一次加密备份。")
+      : t("主密码无法找回；锁定状态下的快速收藏会先临时未加密暂存。解锁后可整理收藏并导出加密备份。");
 }
 
 function openManagerPage() {
   chrome.tabs.create({ url: MANAGER_PAGE_URL });
+}
+
+async function openPopupPage() {
+  if (globalThis.chrome?.action?.openPopup) {
+    await chrome.action.openPopup();
+    return;
+  }
+
+  setMessage(t("请点击浏览器工具栏上的 SafeMarks 图标打开 popup。"), "info");
 }
 
 function formatQuickCaptureImportMessage(importedCount) {
@@ -816,11 +821,17 @@ async function handleWelcomeSetupSubmit(event) {
       record.settings.autoLockMinutes
     ));
 
+    state.welcomeImportSkipped = false;
     resetWelcomeSetupForm();
     await refreshView(t("已创建并解锁。下一步建议导入浏览器书签。"));
   } catch (error) {
     setMessage(error instanceof Error ? error.message : String(error), "error");
   }
+}
+
+async function handleWelcomeImportSkip() {
+  state.welcomeImportSkipped = true;
+  await refreshView(t("已跳过浏览器书签导入。之后仍可在设置页导入。"));
 }
 
 async function handleSaveSettings() {
@@ -891,8 +902,14 @@ async function handleExportPlain() {
     }
 
     const session = await requireUnlockedSession(t("导出明文前，先在当前页输入主密码解锁。"));
-    const confirmed = window.confirm(t("明文导出会生成可直接阅读的 JSON，确认继续？"));
+    const confirmed = await confirmDialog({
+      title: t("确认导出明文 JSON？"),
+      body: t("明文导出会生成可直接阅读的 JSON。导出后请自行妥善保管。"),
+      confirmLabel: t("导出明文"),
+      tone: "danger"
+    });
     if (!confirmed) {
+      setMessage(t("已取消明文导出。"), "info");
       return;
     }
 
@@ -923,7 +940,12 @@ async function handleImport(event) {
     const preflight = createRestorePreflight(payload, {
       hasExistingVault: Boolean(await loadVaultRecord())
     });
-    const confirmed = window.confirm(formatRestorePreflightMessage(preflight));
+    const confirmed = await confirmDialog({
+      title: t("确认导入加密备份？"),
+      body: formatRestorePreflightMessage(preflight),
+      confirmLabel: t("导入并覆盖"),
+      tone: "danger"
+    });
     if (!confirmed) {
       setMessage(t("已取消导入加密备份。"), "info");
       return;
@@ -934,6 +956,7 @@ async function handleImport(event) {
     await clearPendingQuickCaptures();
     await sessionLock();
     state.pendingAction = null;
+    state.welcomeImportSkipped = false;
     await refreshQuickCaptureBadge();
     await refreshView();
     setMessage(t("加密备份已导入，可直接在当前页输入原密码解锁。"), "success");
@@ -961,6 +984,7 @@ async function handleImportNativeBookmarks() {
 
     setSessionState("unlocked", touched.session.autoLockMinutes);
     state.pendingAction = null;
+    state.welcomeImportSkipped = false;
     await runNativeImport(record, touched.session.encodedKey);
   } catch (error) {
     setMessage(error instanceof Error ? error.message : t("从浏览器导入失败。"), "error");
@@ -986,6 +1010,7 @@ async function handleUnlockSubmit(event) {
 
     if (state.pendingAction === "import-native") {
       state.pendingAction = null;
+      state.welcomeImportSkipped = false;
       await runNativeImport(unlocked.record, session.encodedKey);
     }
   } catch (error) {
@@ -1071,9 +1096,15 @@ async function handleResetConfirm(event) {
     throw error;
   }
 
-  const confirmed = window.confirm(t("此操作不可撤销，确定继续？"));
+  const confirmed = await confirmDialog({
+    title: t("确认清空本地数据？"),
+    body: t("此操作会删除本地保险库、当前会话和待写入快速收藏，且不可撤销。"),
+    confirmLabel: t("清空本地数据"),
+    tone: "danger"
+  });
   if (!confirmed) {
     setResetConfirmVisible(false);
+    setMessage(t("已取消清空本地数据。"), "info");
     return;
   }
 
@@ -1081,6 +1112,7 @@ async function handleResetConfirm(event) {
     await clearVaultRecord();
     await sessionLock();
     state.pendingAction = null;
+    state.welcomeImportSkipped = false;
     setResetConfirmVisible(false);
     await refreshQuickCaptureBadge();
     await refreshView();
@@ -1095,7 +1127,18 @@ async function handleResetConfirm(event) {
 elements.welcomeSetupForm.addEventListener("submit", handleWelcomeSetupSubmit);
 elements.welcomeImportBackup.addEventListener("click", () => elements.importFile.click());
 elements.welcomeImportTrigger.addEventListener("click", handleImportNativeBookmarks);
+elements.welcomeImportSkip.addEventListener("click", () => {
+  handleWelcomeImportSkip().catch((error) => {
+    setMessage(error instanceof Error ? error.message : String(error), "error");
+  });
+});
 elements.welcomeCompleteOpenManager.addEventListener("click", openManagerPage);
+elements.welcomeCompleteOpenPopup.addEventListener("click", () => {
+  openPopupPage().catch((error) => {
+    setMessage(error instanceof Error ? error.message : String(error), "error");
+  });
+});
+elements.welcomeCompleteExportBackup.addEventListener("click", handleExportEncrypted);
 elements.openManager.addEventListener("click", openManagerPage);
 elements.saveLanguage.addEventListener("click", () => {
   handleSaveLanguage().catch((error) => {

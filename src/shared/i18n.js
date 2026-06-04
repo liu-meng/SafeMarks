@@ -479,6 +479,14 @@ const EN_TRANSLATIONS = Object.freeze({
     "Added batch selection in the manager for moving folders, adding or removing tags, and deleting bookmarks",
   "设置页新增加密备份提醒和导入恢复预检":
     "Added encrypted backup reminders and restore preflight checks on the settings page",
+  "收敛 popup 信息密度，默认展示快速保存和最近 5 条收藏":
+    "Reduced popup density by focusing on quick save and the 5 most recent bookmarks",
+  "完善首次使用三步引导，支持跳过导入并提示备份与快速收藏安全模型":
+    "Completed the three-step onboarding flow with optional import, backup guidance, and quick capture security details",
+  "popup 与快速收藏页统一目录选择器，支持搜索已有目录和最近使用目录":
+    "Unified the folder picker across the popup and quick capture with existing-folder search and recent folders",
+  "统一高风险操作确认与页面反馈，改善取消操作和错误恢复体验":
+    "Unified confirmations and page feedback for high-risk actions, cancellations, and error recovery",
   "性能与稳定性优化": "Performance and stability improvements",
   "设置页重构为双栏网格布局": "Refactored settings page to two-column grid layout",
   "新增关闭浏览器时自动锁定选项": "Added lock-on-browser-close option",

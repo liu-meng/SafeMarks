@@ -3,6 +3,7 @@ export const AUTO_LOCK_OPTIONS = [1, 5, 15, 30, AUTO_LOCK_ON_BROWSER_CLOSE];
 export const DEFAULT_AUTO_LOCK_MINUTES = 15;
 export const STORAGE_KEYS = ["version", "salt", "auth", "vault", "settings", "meta"];
 export const FOLDER_CATALOG_STORAGE_KEY = "folderCatalog";
+export const RECENT_FOLDER_PATHS_STORAGE_KEY = "recentFolderPaths";
 export const PENDING_QUICK_CAPTURES_STORAGE_KEY = "pendingQuickCaptures";
 export const BACKUP_REMINDER_STORAGE_KEY = "backupReminder";
 export const SESSION_STORAGE_KEY = "safeMarksSession";

@@ -27,6 +27,11 @@ import {
 import { flattenNativeBookmarkTree } from "../src/core/native-bookmarks.js";
 import { normalizeBookmarkTags } from "../src/core/tags.js";
 import {
+  addRecentFolderPath,
+  MAX_RECENT_FOLDER_PATHS,
+  normalizeRecentFolderPaths
+} from "../src/core/recent-folders.js";
+import {
   clearVaultRecord,
   hasVaultRecordData,
   loadBackupReminderState,
@@ -56,8 +61,10 @@ import {
   initializeI18n,
   localizeDocument,
   resolveLocaleFromPreference,
-  setLanguagePreference
+  setLanguagePreference,
+  t
 } from "../src/shared/i18n.js";
+import { CHANGELOG } from "../src/shared/changelog.js";
 
 test("base64 helpers round-trip bytes", () => {
   const source = new Uint8Array([0, 1, 2, 253, 254, 255]);
@@ -72,11 +79,30 @@ test("options page exposes script-required shortcut controls", () => {
 
   assert.match(html, /id="open-shortcut-settings"/);
   assert.match(html, /id="shortcut-list"/);
+  assert.match(html, /id="welcome-import-skip"/);
+  assert.match(html, /id="welcome-complete-open-popup"/);
+  assert.match(html, /id="welcome-complete-export-backup"/);
   assert.match(html, /id="backup-last-export"/);
   assert.match(html, /id="backup-reminder"/);
   assert.match(html, /id="backup-reminder-export"/);
   assert.match(html, /id="backup-reminder-dismiss"/);
   assert.doesNotMatch(html, /(?:id|class|type|aria-live)=["“”][^"]*[“”]/);
+});
+
+test("popup page exposes compact recent list and shared folder picker targets", () => {
+  const html = readFileSync(new URL("../src/popup/index.html", import.meta.url), "utf8");
+
+  assert.match(html, /id="bookmark-list-title"/);
+  assert.match(html, /id="bookmark-details"/);
+  assert.match(html, /id="bookmark-folder-picker"/);
+  assert.match(html, /id="bookmark-list"/);
+});
+
+test("quick capture page exposes shared folder picker target", () => {
+  const html = readFileSync(new URL("../src/quick-capture/index.html", import.meta.url), "utf8");
+
+  assert.match(html, /id="capture-folder-picker"/);
+  assert.doesNotMatch(html, /id="existing-folder-select"/);
 });
 
 test("manager page exposes batch toolbar controls", () => {
@@ -105,6 +131,24 @@ test("tag normalization trims hashes deduplicates and limits values", () => {
   assert.equal(tags[1], "A Long Tag");
   assert.equal(tags[2], "x".repeat(32));
   assert.equal(tags.length, 20);
+});
+
+test("recent folder helpers normalize dedupe and keep newest paths first", () => {
+  const normalized = normalizeRecentFolderPaths([
+    " Work / API ",
+    "",
+    "work/api",
+    "Personal",
+    ...Array.from({ length: 20 }, (_item, index) => `Folder ${index}`)
+  ]);
+
+  assert.deepEqual(normalized.slice(0, 2), ["Work/API", "Personal"]);
+  assert.equal(normalized.length, MAX_RECENT_FOLDER_PATHS);
+
+  const next = addRecentFolderPath(normalized, " Personal ");
+  assert.equal(next[0], "Personal");
+  assert.equal(next.filter((path) => path.toLowerCase() === "personal").length, 1);
+  assert.equal(next.length, MAX_RECENT_FOLDER_PATHS);
 });
 
 test("vault can be created and unlocked with the same password", async () => {
@@ -234,6 +278,16 @@ test("localizeDocument reveals the page only after localization is applied", asy
     assert.equal(documentElement.getAttribute("data-i18n-pending"), null);
   } finally {
     globalThis.NodeFilter = originalNodeFilter;
+  }
+});
+
+test("every changelog entry has an English translation", async () => {
+  await setLanguagePreference(LANGUAGE_PREFERENCES.ENGLISH);
+
+  for (const release of CHANGELOG) {
+    for (const change of release.changes) {
+      assert.notEqual(t(change), change, `Missing English changelog translation: ${change}`);
+    }
   }
 });
 

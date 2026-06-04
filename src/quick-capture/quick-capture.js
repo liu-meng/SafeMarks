@@ -1,4 +1,8 @@
 import { loadFolderCatalog, loadVaultRecord } from "../core/storage.js";
+import {
+  loadRecentFolderPaths,
+  rememberRecentFolderPath
+} from "../core/recent-folders.js";
 import { sessionStatus, sessionTouch } from "../core/session.js";
 import { decryptBookmarksWithEncodedKey } from "../core/vault.js";
 import {
@@ -9,7 +13,9 @@ import {
 } from "../core/quick-capture.js";
 import { syncFolderCatalogFromBookmarks } from "../core/folder-catalog.js";
 import { initializeI18n, localizeDocument, t } from "../shared/i18n.js";
+import { createFolderPicker } from "../shared/folder-picker.js";
 import { createTagChipsInput } from "../shared/tag-chips.js";
+import { showMessage } from "../shared/ui.js";
 
 try {
   await initializeI18n();
@@ -29,8 +35,7 @@ const elements = {
   form: document.querySelector("#quick-capture-form"),
   title: document.querySelector("#capture-title"),
   url: document.querySelector("#capture-url"),
-  existingFolderSelect: document.querySelector("#existing-folder-select"),
-  folderPath: document.querySelector("#capture-folder-path"),
+  folderPicker: document.querySelector("#capture-folder-picker"),
   folderHelper: document.querySelector("#folder-helper"),
   tagsField: document.querySelector("#capture-tags-field"),
   submit: document.querySelector("#capture-submit"),
@@ -38,28 +43,23 @@ const elements = {
   openSettings: document.querySelector("#open-settings")
 };
 
+const folderPicker = createFolderPicker();
+elements.folderPicker.append(folderPicker.element);
+
 const tagEditor = createTagChipsInput();
 elements.tagsField.append(tagEditor.element);
 
 const state = {
   draft: null,
   folderCatalog: [],
+  recentFolderPaths: [],
   sessionState: "locked"
 };
 
 const POPUP_PAGE_URL = chrome.runtime.getURL("src/popup/index.html");
 
 function setMessage(text, tone = "info") {
-  if (!text) {
-    elements.message.hidden = true;
-    elements.message.textContent = "";
-    elements.message.className = "message message-info";
-    return;
-  }
-
-  elements.message.hidden = false;
-  elements.message.textContent = text;
-  elements.message.className = `message message-${tone}`;
+  showMessage(elements.message, text, tone);
 }
 
 function setMode(status) {
@@ -99,46 +99,21 @@ function setPreviewFavicon(faviconUrl) {
 }
 
 function renderFolderOptions() {
-  const currentValue = elements.folderPath.value.trim();
-  elements.existingFolderSelect.replaceChildren();
-
-  const defaultOption = document.createElement("option");
-  defaultOption.value = "";
-  defaultOption.textContent =
-    state.sessionState === "unlocked"
-      ? t("默认")
-      : t("默认（解锁后显示更多）");
-  elements.existingFolderSelect.append(defaultOption);
+  folderPicker.setCatalog(state.folderCatalog);
+  folderPicker.setRecent(state.recentFolderPaths);
 
   if (state.sessionState !== "unlocked") {
-    elements.existingFolderSelect.value = "";
-    elements.existingFolderSelect.disabled = true;
-    elements.folderHelper.textContent = t("当前未解锁，已有目录暂不可选；可直接输入新目录，或先解锁后选择更多已有目录。");
+    elements.folderHelper.textContent = t("当前未解锁，可使用最近目录或本地目录列表；保存后会先未加密暂存。");
     return;
   }
 
-  for (const folderPath of state.folderCatalog) {
-    const option = document.createElement("option");
-    option.value = folderPath;
-    option.textContent = folderPath;
-    elements.existingFolderSelect.append(option);
-  }
-
-  if (currentValue && state.folderCatalog.includes(currentValue)) {
-    elements.existingFolderSelect.value = currentValue;
-  } else {
-    elements.existingFolderSelect.value = "";
-  }
-
   if (state.folderCatalog.length > 0) {
-    elements.folderHelper.textContent = t("可先选择已有目录，也可以直接在下方输入新目录。");
-    elements.existingFolderSelect.disabled = false;
+    elements.folderHelper.textContent = t("可搜索已有目录，也可以直接输入新目录。");
     return;
   }
 
   elements.folderHelper.textContent =
     t("当前没有可选目录。可直接在“分类目录”中输入一个新目录，保存后会加入目录列表。");
-  elements.existingFolderSelect.disabled = false;
 }
 
 function parseDraftFromQuery() {
@@ -166,6 +141,7 @@ function applyDraftToForm(draft) {
 async function refreshFolderCatalog() {
   const record = await loadVaultRecord();
   const status = record ? await sessionStatus() : { status: "locked", session: null };
+  state.recentFolderPaths = await loadRecentFolderPaths();
   setMode(status.status);
 
   if (!record) {
@@ -203,13 +179,6 @@ async function refreshQuickCaptureBadge() {
   });
 }
 
-function syncFolderSelectFromInput() {
-  const value = elements.folderPath.value.trim();
-  elements.existingFolderSelect.value = state.folderCatalog.includes(value)
-    ? value
-    : "";
-}
-
 async function handleSubmit(event) {
   event.preventDefault();
 
@@ -224,7 +193,7 @@ async function handleSubmit(event) {
     const bookmark = createQuickCaptureBookmark({
       title: elements.title.value,
       url: elements.url.value,
-      folderPath: elements.folderPath.value,
+      folderPath: folderPicker.getValue(),
       tags: tagEditor.getTags()
     });
     const touched = await sessionTouch();
@@ -236,6 +205,7 @@ async function handleSubmit(event) {
         encodedKey: touched.session.encodedKey
       });
       await refreshQuickCaptureBadge();
+      state.recentFolderPaths = await rememberRecentFolderPath(bookmark.folderPath);
       setMode("unlocked");
       setMessage(t("已直接写入保险库。"), "success");
       window.setTimeout(() => {
@@ -246,6 +216,7 @@ async function handleSubmit(event) {
 
     const queued = await queueQuickCaptureBookmark(bookmark);
     await refreshQuickCaptureBadge();
+    state.recentFolderPaths = await rememberRecentFolderPath(bookmark.folderPath);
     setMode(touched.status);
     setMessage(
       t("已暂存快速收藏，解锁后自动导入。当前待写入 {count} 条。", {
@@ -301,10 +272,6 @@ elements.openUnlock.addEventListener("click", () => {
   });
 });
 elements.openSettings.addEventListener("click", () => chrome.runtime.openOptionsPage());
-elements.existingFolderSelect.addEventListener("change", () => {
-  elements.folderPath.value = elements.existingFolderSelect.value;
-});
-elements.folderPath.addEventListener("input", syncFolderSelectFromInput);
 elements.previewFavicon.addEventListener("error", () => setPreviewFavicon(""));
 elements.form.addEventListener("submit", handleSubmit);
 window.addEventListener("focus", () => {

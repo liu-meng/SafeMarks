@@ -77,6 +77,24 @@ body {
   align-items: flex-start;
 }
 
+.save-details {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.save-details summary {
+  padding: 10px 12px;
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.save-details-body {
+  padding: 0 12px 12px;
+}
+
 .save-cancel-button {
   display: inline-flex;
   align-items: center;

@@ -122,70 +122,22 @@
                   <span>URL</span>
                   <input id="bookmark-url" class="input" type="url" required />
                 </label>
-                <div class="label folder-tree-select" data-folder-select>
-                  <span>分类目录</span>
-                  <div class="folder-tree-select-shell">
-                    <button
-                      id="bookmark-folder-trigger"
-                      class="folder-tree-select-trigger"
-                      type="button"
-                      aria-expanded="false"
-                      aria-controls="bookmark-folder-panel"
-                    >
-                      <span class="folder-tree-select-trigger-top">
-                        <span id="bookmark-folder-trigger-label" class="folder-tree-select-trigger-label">
-                          未分类
-                        </span>
-                        <span
-                          id="bookmark-folder-trigger-caret"
-                          class="folder-tree-select-trigger-caret"
-                          aria-hidden="true"
-                        >
-                          v
-                        </span>
-                      </span>
-                      <span class="folder-tree-select-trigger-copy">选择已有目录或新建目录</span>
-                    </button>
-
-                    <div id="bookmark-folder-panel" class="folder-tree-select-panel" hidden>
-                      <label class="label folder-tree-select-create">
-                        <span>新建目录</span>
-                        <input
-                          id="bookmark-folder-path"
-                          class="input"
-                          type="text"
-                          placeholder="可选，例如 工作/项目A"
-                        />
-                      </label>
-
-                      <div class="folder-tree-select-section-head">
-                        <span class="folder-tree-select-section-title">已有目录</span>
-                        <button
-                          id="bookmark-folder-clear"
-                          class="folder-tree-select-clear"
-                          type="button"
-                        >
-                          未分类
-                        </button>
-                      </div>
-
-                      <div id="bookmark-folder-tree" class="folder-tree-select-tree"></div>
-                      <p id="bookmark-folder-empty" class="helper-text" hidden>
-                        还没有现有目录，可直接在上方输入新目录。
-                      </p>
-                    </div>
+                <details id="bookmark-details" class="save-details">
+                  <summary>详细信息</summary>
+                  <div class="save-details-body stack">
+                    <div id="bookmark-folder-picker"></div>
+                    <label class="label">
+                      <span>备注</span>
+                      <textarea
+                        id="bookmark-note"
+                        class="textarea"
+                        rows="3"
+                        placeholder="可选，记录这条收藏的用途或补充信息"
+                      ></textarea>
+                    </label>
+                    <div id="bookmark-tags-field"></div>
                   </div>
-                </div>
-                <label class="label">
-                  <span>备注</span>
-                  <textarea
-                    id="bookmark-note"
-                    class="textarea"
-                    rows="3"
-                    placeholder="可选，记录这条收藏的用途或补充信息"
-                  ></textarea>
-                </label>
-                <div id="bookmark-tags-field"></div>
+                </details>
                 <button id="add-submit" class="button" type="submit">完成</button>
               </form>
             </section>
@@ -195,7 +147,7 @@
         <section class="panel panel-pad stack">
           <div class="section-head">
             <div class="stack panel-tight">
-              <h2>收藏列表</h2>
+              <h2 id="bookmark-list-title">最近收藏</h2>
               <p id="bookmark-count" class="helper-text">0 条收藏</p>
             </div>
             <button id="open-manager" class="ghost-button popup-manage-button" type="button">管理收藏</button>

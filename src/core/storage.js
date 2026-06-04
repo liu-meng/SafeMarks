@@ -2,6 +2,7 @@ import {
   BACKUP_REMINDER_STORAGE_KEY,
   FOLDER_CATALOG_STORAGE_KEY,
   PENDING_QUICK_CAPTURES_STORAGE_KEY,
+  RECENT_FOLDER_PATHS_STORAGE_KEY,
   STORAGE_KEYS
 } from "./constants.js";
 import { normalizeBackupReminderState } from "./backup.js";
@@ -89,6 +90,7 @@ export async function clearVaultRecord() {
   await requireChromeStorage().remove([
     BACKUP_REMINDER_STORAGE_KEY,
     FOLDER_CATALOG_STORAGE_KEY,
+    RECENT_FOLDER_PATHS_STORAGE_KEY,
     ...STORAGE_KEYS,
     PENDING_QUICK_CAPTURES_STORAGE_KEY
   ]);
