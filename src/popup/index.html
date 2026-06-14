@@ -81,16 +81,31 @@
       </section>
 
       <section id="unlocked-screen" class="stack" hidden>
-        <section class="panel panel-pad stack">
-          <div class="section-head">
-            <div class="stack panel-tight">
-              <h2>当前保险库</h2>
-              <p id="session-badge" class="badge">已解锁</p>
-            </div>
-            <button id="lock-now" class="button-secondary" type="button">锁定</button>
+        <section class="panel panel-pad stack quick-panel">
+          <div class="popup-status-bar">
+            <p id="session-badge" class="badge session-badge">已解锁</p>
+            <button id="lock-now" class="ghost-button compact-action" type="button">锁定</button>
           </div>
 
           <div class="save-entry stack">
+            <div class="current-page-summary">
+              <p class="eyebrow">当前页</p>
+              <div class="current-page-main">
+                <span id="current-page-favicon-shell" class="current-page-favicon-shell" hidden>
+                  <img
+                    id="current-page-favicon"
+                    class="current-page-favicon"
+                    alt=""
+                    referrerpolicy="no-referrer"
+                  />
+                </span>
+                <div class="current-page-copy">
+                  <h2 id="current-page-title" class="current-page-title">正在读取当前页</h2>
+                  <p id="current-page-url" class="current-page-url">打开普通网页后即可保存到保险库。</p>
+                </div>
+              </div>
+              <p id="current-page-folder" class="current-page-folder helper-text" hidden></p>
+            </div>
             <button id="save-current-page" class="button save-trigger" type="button">
               <span class="save-trigger-content">
                 <span id="save-current-page-favicon-shell" class="save-trigger-favicon-shell" hidden>
@@ -101,7 +116,7 @@
                     referrerpolicy="no-referrer"
                   />
                 </span>
-                <span>保存当前页</span>
+                <span id="save-current-page-label">保存当前页</span>
               </span>
             </button>
 
@@ -142,6 +157,11 @@
               </form>
             </section>
           </div>
+
+          <label class="label popup-search">
+            <span>搜索收藏</span>
+            <input id="search-input" class="input" type="search" placeholder="搜索标题、网址、标签、备注或目录" />
+          </label>
         </section>
 
         <section class="panel panel-pad stack">
@@ -152,10 +172,6 @@
             </div>
             <button id="open-manager" class="ghost-button popup-manage-button" type="button">管理收藏</button>
           </div>
-          <label class="label">
-            <span>搜索收藏</span>
-            <input id="search-input" class="input" type="search" placeholder="支持标题、URL、目录、备注和标签的模糊搜索" />
-          </label>
           <div id="empty-state" class="empty-state stack">
             <p id="empty-state-copy">还没有收藏，先把当前页加入保险库。</p>
             <div id="empty-state-actions" class="button-row" hidden>

@@ -64,7 +64,16 @@ const EN_TRANSLATIONS = Object.freeze({
   "当前保险库": "Current Vault",
   "已解锁": "Unlocked",
   "锁定": "Lock",
+  "当前页": "Current Page",
+  "正在读取当前页": "Reading current page",
+  "打开普通网页后即可保存到保险库。": "Open a normal web page to save it to the vault.",
+  "当前页不能保存": "This page cannot be saved",
+  "无法保存此页": "Cannot Save This Page",
   "保存当前页": "Save Current Page",
+  "查看已收藏": "View Saved Bookmark",
+  "已收藏在：{folderPath}": "Saved in: {folderPath}",
+  "尚未收藏，保存后会写入本地加密保险库。":
+    "Not saved yet. Saving writes it to the local encrypted vault.",
   "新建收藏": "New Bookmark",
   "正在读取当前页面信息...": "Reading current page details...",
   "取消": "Cancel",
@@ -84,6 +93,7 @@ const EN_TRANSLATIONS = Object.freeze({
   "管理收藏": "Manage Bookmarks",
   "搜索收藏": "Search Bookmarks",
   "按标题、URL、目录或备注搜索": "Search by title, URL, folder, or note",
+  "搜索标题、网址、标签、备注或目录": "Search title, URL, tags, note, or folder",
   "支持标题、URL、目录、备注和标签的模糊搜索":
     "Fuzzy search title, URL, folder, note, and tags",
   "标签": "Tags",
@@ -235,6 +245,8 @@ const EN_TRANSLATIONS = Object.freeze({
   "没有匹配的收藏。": "No matching bookmarks.",
   "可按原生收藏习惯修改标题或 URL 后再保存。":
     "Adjust the title or URL as you would with native bookmarks, then save.",
+  "当前页已在保险库中，可直接修改这条收藏。":
+    "This page is already in the vault. You can edit the saved bookmark directly.",
   "保险库已锁定，请重新解锁。": "Vault locked. Unlock it again.",
   "首次使用需要创建一个主密码。": "Create a master password before first use.",
   "会话已过期，请重新输入主密码。": "Session expired. Enter your master password again.",

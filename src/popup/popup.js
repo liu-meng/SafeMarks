@@ -70,8 +70,14 @@ const elements = {
   openManager: document.querySelector("#open-manager"),
   searchInput: document.querySelector("#search-input"),
   saveCurrentPage: document.querySelector("#save-current-page"),
+  saveCurrentPageLabel: document.querySelector("#save-current-page-label"),
   saveCurrentPageFaviconShell: document.querySelector("#save-current-page-favicon-shell"),
   saveCurrentPageFavicon: document.querySelector("#save-current-page-favicon"),
+  currentPageTitle: document.querySelector("#current-page-title"),
+  currentPageUrl: document.querySelector("#current-page-url"),
+  currentPageFolder: document.querySelector("#current-page-folder"),
+  currentPageFaviconShell: document.querySelector("#current-page-favicon-shell"),
+  currentPageFavicon: document.querySelector("#current-page-favicon"),
   savePanel: document.querySelector("#save-panel"),
   savePanelTitle: document.querySelector("#save-panel-title"),
   closeSavePanel: document.querySelector("#close-save-panel"),
@@ -116,6 +122,7 @@ const state = {
   savePanelOpen: false,
   saveMode: "create",
   editingBookmarkId: null,
+  currentPageBookmarkId: null,
   detailBookmarkId: null,
   collapsedFolders: new Set(),
   knownFolderPaths: new Set(),
@@ -198,6 +205,34 @@ function getBookmarkCount(record = state.record) {
     : null;
 }
 
+function normalizeUrlForCurrentPage(rawUrl = "") {
+  try {
+    const url = new URL(rawUrl);
+    return (url.origin + url.pathname.replace(/\/+$/, "") + url.search + url.hash).toLowerCase();
+  } catch {
+    return rawUrl.toLowerCase().trim();
+  }
+}
+
+function getBookmarkForUrl(rawUrl = "") {
+  const normalizedUrl = normalizeUrlForCurrentPage(rawUrl);
+  if (!normalizedUrl) {
+    return null;
+  }
+
+  return state.bookmarks.find(
+    (bookmark) => normalizeUrlForCurrentPage(bookmark.url) === normalizedUrl
+  ) ?? null;
+}
+
+function getDisplayHost(rawUrl = "") {
+  try {
+    return new URL(rawUrl).host;
+  } catch {
+    return rawUrl;
+  }
+}
+
 function updateLockedBookmarkCount(record = state.record) {
   const count = getBookmarkCount(record);
   elements.lockedBookmarkCount.textContent =
@@ -273,6 +308,17 @@ function renderFolderTreeSelect() {
   folderPicker.setRecent(state.recentFolderPaths);
 }
 
+function resetCurrentPageSummary() {
+  state.currentPageBookmarkId = null;
+  setSaveTriggerFavicon("");
+  elements.currentPageTitle.textContent = t("正在读取当前页");
+  elements.currentPageUrl.textContent = t("打开普通网页后即可保存到保险库。");
+  elements.currentPageFolder.hidden = true;
+  elements.currentPageFolder.textContent = "";
+  elements.saveCurrentPageLabel.textContent = t("保存当前页");
+  elements.saveCurrentPage.disabled = false;
+}
+
 function resetSaveForm() {
   state.savePanelOpen = false;
   state.saveMode = "create";
@@ -337,11 +383,15 @@ function setSaveTriggerFavicon(faviconUrl) {
   if (!faviconUrl) {
     elements.saveCurrentPageFaviconShell.hidden = true;
     elements.saveCurrentPageFavicon.removeAttribute("src");
+    elements.currentPageFaviconShell.hidden = true;
+    elements.currentPageFavicon.removeAttribute("src");
     return;
   }
 
   elements.saveCurrentPageFaviconShell.hidden = false;
   elements.saveCurrentPageFavicon.src = faviconUrl;
+  elements.currentPageFaviconShell.hidden = false;
+  elements.currentPageFavicon.src = faviconUrl;
 }
 
 function formatTimestamp(timestamp) {
@@ -709,6 +759,7 @@ function resetUnlockedState() {
   state.knownFolderPaths = new Set();
   elements.searchInput.value = "";
   resetSaveForm();
+  resetCurrentPageSummary();
 }
 
 function renderBookmarks() {
@@ -771,6 +822,7 @@ async function persistBookmarks(nextBookmarks, successMessage) {
   renderBookmarks();
   renderFolderTreeSelect();
   updateLockedBookmarkCount(nextRecord);
+  await refreshCurrentPageCandidate().catch(() => resetCurrentPageSummary());
   if (successMessage) {
     setMessage(successMessage, "success");
   }
@@ -781,6 +833,13 @@ async function refreshCurrentPageCandidate() {
   setSaveTriggerFavicon(candidate.supported ? candidate.faviconUrl : "");
 
   if (!candidate.supported) {
+    state.currentPageBookmarkId = null;
+    elements.currentPageTitle.textContent = t("当前页不能保存");
+    elements.currentPageUrl.textContent = candidate.reason;
+    elements.currentPageFolder.hidden = true;
+    elements.currentPageFolder.textContent = "";
+    elements.saveCurrentPageLabel.textContent = t("无法保存此页");
+    elements.saveCurrentPage.disabled = true;
     elements.addTitle.value = "";
     elements.addUrl.value = "";
     folderPicker.setValue("");
@@ -801,6 +860,20 @@ async function refreshCurrentPageCandidate() {
   elements.addSubmit.disabled = false;
   elements.addTitle.value = candidate.title;
   elements.addUrl.value = candidate.url;
+  const currentBookmark = getBookmarkForUrl(candidate.url);
+  state.currentPageBookmarkId = currentBookmark?.id ?? null;
+  elements.currentPageTitle.textContent = currentBookmark?.title || candidate.title;
+  elements.currentPageUrl.textContent = getDisplayHost(candidate.url);
+  elements.currentPageFolder.hidden = false;
+  elements.currentPageFolder.textContent = currentBookmark
+    ? t("已收藏在：{folderPath}", {
+        folderPath: currentBookmark.folderPath || t("未分类")
+      })
+    : t("尚未收藏，保存后会写入本地加密保险库。");
+  elements.saveCurrentPageLabel.textContent = currentBookmark
+    ? t("查看已收藏")
+    : t("保存当前页");
+  elements.saveCurrentPage.disabled = false;
   elements.pageStatus.textContent = t("可按原生收藏习惯修改标题或 URL 后再保存。");
   syncFolderPickerDisabledState();
   renderFolderTreeSelect();
@@ -814,6 +887,15 @@ async function openCurrentPageSavePanel({ touchSession = true } = {}) {
 
   openSaveForm("create");
   const candidate = await refreshCurrentPageCandidate();
+  const currentBookmark = state.currentPageBookmarkId
+    ? state.bookmarks.find((bookmark) => bookmark.id === state.currentPageBookmarkId)
+    : null;
+
+  if (currentBookmark) {
+    openSaveForm("edit", currentBookmark);
+    elements.pageStatus.textContent = t("当前页已在保险库中，可直接修改这条收藏。");
+  }
+
   if (!elements.addTitle.disabled) {
     elements.addTitle.focus();
     elements.addTitle.select();
@@ -1145,6 +1227,7 @@ elements.changelogBanner.addEventListener("click", handleChangelogBannerClick);
 elements.changelogBannerDismiss.addEventListener("click", handleChangelogBannerDismiss);
 elements.saveCurrentPage.addEventListener("click", handleOpenSavePanel);
 elements.saveCurrentPageFavicon.addEventListener("error", () => setSaveTriggerFavicon(""));
+elements.currentPageFavicon.addEventListener("error", () => setSaveTriggerFavicon(""));
 elements.closeSavePanel.addEventListener("click", resetSaveForm);
 elements.addForm.addEventListener("submit", handleAddSubmit);
 elements.searchInput.addEventListener("input", handleSearchInput);
