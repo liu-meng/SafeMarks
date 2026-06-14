@@ -20,7 +20,7 @@ npm run package:extension
 执行后上传这个文件：
 
 ```text
-dist/safemarks-1.0.7.zip
+dist/safemarks-1.0.9.zip
 ```
 
 如果版本号变化，ZIP 文件名会随 `manifest.json` 中的 `version` 自动变化。
@@ -51,7 +51,7 @@ dist/safemarks-1.0.7.zip
 
 ### 4.2 Package
 
-- 上传文件：`dist/safemarks-1.0.7.zip`
+- 上传文件：`dist/safemarks-1.0.9.zip`
 - ZIP 内已有 `manifest.json`、`src/`、`assets/`、`_locales/`
 
 ### 4.3 Store Listing
@@ -165,7 +165,7 @@ No account or paid service is required.
 
 ### 5.1 Package
 
-- 上传文件：`dist/safemarks-1.0.7.zip`
+- 上传文件：`dist/safemarks-1.0.9.zip`
 - Edge 会把上传的 ZIP 转成商店分发格式
 
 ### 5.2 Properties / Listing
@@ -184,10 +184,11 @@ No account or paid service is required.
 
 ### 5.3 语言要求
 
-当前包内已有两套 locale：
+当前包内已有三套 locale：
 
 - `en`
 - `zh_CN`
+- `ja`
 
 按 Edge 文档，至少要确保：
 

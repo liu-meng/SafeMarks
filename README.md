@@ -51,7 +51,7 @@ npm run package:extension
 生成结果会输出到 `dist/` 目录，例如：
 
 ```text
-dist/safemarks-1.0.7.zip
+dist/safemarks-1.0.9.zip
 ```
 
 仓库内还提供了发布所需的辅助文档：

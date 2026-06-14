@@ -190,6 +190,10 @@ test("auto language falls back to English when browser locale is unsupported", (
     resolveLocaleFromPreference(LANGUAGE_PREFERENCES.AUTO, "zh-TW"),
     LANGUAGE_PREFERENCES.CHINESE
   );
+  assert.equal(
+    resolveLocaleFromPreference(LANGUAGE_PREFERENCES.AUTO, "ja-JP"),
+    LANGUAGE_PREFERENCES.JAPANESE
+  );
 });
 
 test("i18n initialization supports promise-style storage APIs", async () => {
@@ -298,6 +302,16 @@ test("every changelog entry has an English translation", async () => {
   for (const release of CHANGELOG) {
     for (const change of release.changes) {
       assert.notEqual(t(change), change, `Missing English changelog translation: ${change}`);
+    }
+  }
+});
+
+test("every changelog entry has a Japanese translation", async () => {
+  await setLanguagePreference(LANGUAGE_PREFERENCES.JAPANESE);
+
+  for (const release of CHANGELOG) {
+    for (const change of release.changes) {
+      assert.notEqual(t(change), change, `Missing Japanese changelog translation: ${change}`);
     }
   }
 });

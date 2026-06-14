@@ -1,14 +1,16 @@
 export const LANGUAGE_PREFERENCES = Object.freeze({
   AUTO: "auto",
   CHINESE: "zh-CN",
-  ENGLISH: "en"
+  ENGLISH: "en",
+  JAPANESE: "ja"
 });
 
 const DEFAULT_LOCALE = LANGUAGE_PREFERENCES.ENGLISH;
 const LANGUAGE_PREFERENCE_STORAGE_KEY = "languagePreference";
 const SUPPORTED_LOCALES = new Set([
   LANGUAGE_PREFERENCES.CHINESE,
-  LANGUAGE_PREFERENCES.ENGLISH
+  LANGUAGE_PREFERENCES.ENGLISH,
+  LANGUAGE_PREFERENCES.JAPANESE
 ]);
 let activeLanguagePreference = LANGUAGE_PREFERENCES.AUTO;
 let activeLocale = DEFAULT_LOCALE;
@@ -170,6 +172,7 @@ const EN_TRANSLATIONS = Object.freeze({
   "跟随浏览器": "Follow Browser",
   "中文": "Chinese",
   "英文": "English",
+  "日文": "Japanese",
   "保存语言": "Save Language",
   "超时会清空 `chrome.storage.session` 中的密钥，并要求重新解锁。":
     "Timeout clears the key stored in `chrome.storage.session` and requires unlocking again.",
@@ -529,6 +532,20 @@ const EN_TRANSLATIONS = Object.freeze({
     "Unified the folder picker across the popup and quick capture with existing-folder search and recent folders",
   "统一高风险操作确认与页面反馈，改善取消操作和错误恢复体验":
     "Unified confirmations and page feedback for high-risk actions, cancellations, and error recovery",
+  "优化 popup 快速保存布局，当前页信息、保存按钮和搜索入口优先展示":
+    "Improved the popup quick-save layout so current page details, saving, and search appear first",
+  "当前页已收藏时可直接查看并编辑原收藏，减少重复保存":
+    "When the current page is already saved, open and edit the existing bookmark instead of duplicating it",
+  "更新提示降级为轻量横幅，降低对核心操作的干扰":
+    "Changed update notices to a lighter banner that interferes less with core actions",
+  "新增日语界面与浏览器语言自动识别":
+    "Added Japanese UI and automatic browser language detection",
+  "语言选择器改用固定语言名称，避免随当前界面语言变化":
+    "Changed the language selector to fixed language names so labels do not change with the current UI language",
+  "补齐英文和日语更新日志、右键菜单、快捷键与发布包 locale 文案":
+    "Completed English and Japanese copy for the changelog, context menus, shortcuts, and packaged locales",
+  "发布包新增 Chrome 原生日语 locale，并同步商店提交清单":
+    "Added a native Chrome Japanese locale to the release package and synced the store submission checklist",
   "性能与稳定性优化": "Performance and stability improvements",
   "设置页重构为双栏网格布局": "Refactored settings page to two-column grid layout",
   "新增关闭浏览器时自动锁定选项": "Added lock-on-browser-close option",
@@ -559,6 +576,91 @@ const EN_TRANSLATIONS = Object.freeze({
   "删除": "Delete",
   "关闭": "Close",
   "已删除 {count} 条重复收藏。": "Deleted {count} duplicate bookmarks."
+});
+
+const JA_TRANSLATIONS = Object.freeze({
+  "SafeMarks 设置": "SafeMarks 設定",
+  "SafeMarks 收藏管理": "SafeMarks ブックマーク管理",
+  "SafeMarks 快速收藏": "SafeMarks クイック保存",
+  "加密收藏夹": "暗号化ブックマーク",
+  "设置": "設定",
+  "当前页": "現在のページ",
+  "正在读取当前页": "現在のページを読み込み中",
+  "打开普通网页后即可保存到保险库。": "通常のWebページを開くとボルトに保存できます。",
+  "当前页不能保存": "このページは保存できません",
+  "无法保存此页": "このページは保存できません",
+  "保存当前页": "現在のページを保存",
+  "查看已收藏": "保存済みを表示",
+  "已收藏在：{folderPath}": "保存先：{folderPath}",
+  "尚未收藏，保存后会写入本地加密保险库。":
+    "まだ保存されていません。保存するとローカルの暗号化ボルトに書き込まれます。",
+  "当前页已在保险库中，可直接修改这条收藏。":
+    "このページはすでにボルトにあります。保存済みブックマークを直接編集できます。",
+  "搜索收藏": "ブックマークを検索",
+  "搜索标题、网址、标签、备注或目录": "タイトル、URL、タグ、メモ、フォルダーを検索",
+  "锁定": "ロック",
+  "已解锁": "ロック解除済み",
+  "已解锁 · 约 {minutes} 分钟后自动锁定": "ロック解除済み · 約 {minutes} 分後に自動ロック",
+  "已解锁 · 关闭浏览器时自动锁定": "ロック解除済み · ブラウザーを閉じると自動ロック",
+  "已解锁 · 关闭浏览器时锁定": "ロック解除済み · ブラウザー終了時にロック",
+  "未分类": "未分類",
+  "更新日志": "更新履歴",
+  "每次更新后的变更记录。": "各アップデート後の変更記録です。",
+  "v{version} 已更新 — 查看更新日志": "v{version} に更新されました — 更新履歴を見る",
+  "语言": "言語",
+  "可跟随浏览器语言；如果浏览器语言不受支持，则默认使用英文。":
+    "ブラウザーの言語に合わせられます。未対応の言語では英語が既定になります。",
+  "显示语言": "表示言語",
+  "跟随浏览器": "ブラウザーに合わせる",
+  "中文": "中国語",
+  "英文": "英語",
+  "日文": "日本語",
+  "保存语言": "言語を保存",
+  "语言偏好已更新。": "言語設定を更新しました。",
+  "新增更新日志页面与版本更新提示横幅": "更新履歴ページとバージョン更新通知バナーを追加",
+  "新增右键菜单，可从页面、链接或选中文本快速保存":
+    "ページ、リンク、選択テキストからすばやく保存できる右クリックメニューを追加",
+  "新增密码强度提示和可选主密码提示": "パスワード強度表示と任意のマスターパスワードヒントを追加",
+  "导入浏览器书签时新增重复项处理": "ブラウザーのブックマークをインポートするときの重複処理を追加",
+  "新增可视化标签，可在保存、快速收藏和管理页编辑标签":
+    "保存、クイック保存、管理ページで編集できる視覚的なタグを追加",
+  "升级收藏搜索，支持按标题、URL、目录、备注和标签进行模糊搜索":
+    "タイトル、URL、フォルダー、メモ、タグを対象にしたあいまい検索へアップグレード",
+  "管理页新增批量选择，可批量移动目录、添加或移除标签、删除收藏":
+    "管理ページに一括選択を追加し、フォルダー移動、タグ追加・削除、ブックマーク削除に対応",
+  "设置页新增加密备份提醒和导入恢复预检":
+    "設定ページに暗号化バックアップのリマインダーと復元前チェックを追加",
+  "收敛 popup 信息密度，默认展示快速保存和最近 5 条收藏":
+    "popup の情報密度を下げ、クイック保存と最近の5件を既定で表示",
+  "完善首次使用三步引导，支持跳过导入并提示备份与快速收藏安全模型":
+    "初回利用の3ステップ案内を改善し、インポートのスキップ、バックアップ案内、クイック保存の安全モデルを提示",
+  "popup 与快速收藏页统一目录选择器，支持搜索已有目录和最近使用目录":
+    "popup とクイック保存ページのフォルダー選択を統一し、既存フォルダー検索と最近使ったフォルダーに対応",
+  "统一高风险操作确认与页面反馈，改善取消操作和错误恢复体验":
+    "高リスク操作の確認とページ内フィードバックを統一し、キャンセル操作とエラー復旧を改善",
+  "优化 popup 快速保存布局，当前页信息、保存按钮和搜索入口优先展示":
+    "popup のクイック保存レイアウトを改善し、現在のページ情報、保存ボタン、検索入口を優先表示",
+  "当前页已收藏时可直接查看并编辑原收藏，减少重复保存":
+    "現在のページが保存済みの場合は既存ブックマークを直接表示・編集し、重複保存を減らす",
+  "更新提示降级为轻量横幅，降低对核心操作的干扰":
+    "更新通知を軽量なバナーに変更し、主要操作への干渉を軽減",
+  "新增日语界面与浏览器语言自动识别":
+    "日本語UIとブラウザー言語の自動判定を追加",
+  "语言选择器改用固定语言名称，避免随当前界面语言变化":
+    "言語選択を固定の言語名に変更し、現在のUI言語によって表示名が変わらないように改善",
+  "补齐英文和日语更新日志、右键菜单、快捷键与发布包 locale 文案":
+    "更新履歴、右クリックメニュー、ショートカット、同梱 locale の英語・日本語文言を補完",
+  "发布包新增 Chrome 原生日语 locale，并同步商店提交清单":
+    "リリースパッケージに Chrome ネイティブの日本語 locale を追加し、ストア提出チェックリストも同期",
+  "性能与稳定性优化": "パフォーマンスと安定性の改善",
+  "设置页重构为双栏网格布局": "設定ページを2カラムのグリッドレイアウトに再構成",
+  "新增关闭浏览器时自动锁定选项": "ブラウザー終了時に自動ロックするオプションを追加",
+  "新增修改主密码功能": "マスターパスワード変更機能を追加"
+});
+
+const TRANSLATIONS_BY_LOCALE = Object.freeze({
+  [LANGUAGE_PREFERENCES.ENGLISH]: EN_TRANSLATIONS,
+  [LANGUAGE_PREFERENCES.JAPANESE]: JA_TRANSLATIONS
 });
 
 function getChromeStorage() {
@@ -632,6 +734,10 @@ export function normalizeLanguagePreference(value) {
 export function resolveSupportedLocale(locale = "") {
   if (/^zh\b/i.test(locale)) {
     return LANGUAGE_PREFERENCES.CHINESE;
+  }
+
+  if (/^ja\b/i.test(locale)) {
+    return LANGUAGE_PREFERENCES.JAPANESE;
   }
 
   return LANGUAGE_PREFERENCES.ENGLISH;
@@ -724,9 +830,10 @@ function interpolate(message, substitutions = {}) {
 }
 
 export function t(message, substitutions) {
-  const template = activeLocale === LANGUAGE_PREFERENCES.ENGLISH
-    ? EN_TRANSLATIONS[message] ?? message
-    : message;
+  const localeTranslations = TRANSLATIONS_BY_LOCALE[activeLocale];
+  const template = activeLocale === LANGUAGE_PREFERENCES.CHINESE
+    ? message
+    : localeTranslations?.[message] ?? EN_TRANSLATIONS[message] ?? message;
   return interpolate(template, substitutions);
 }
 

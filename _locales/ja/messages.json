@@ -1,0 +1,17 @@
+{
+  "actionDefaultTitle": {
+    "message": "SafeMarks"
+  },
+  "extensionDescription": {
+    "message": "ローカル暗号化ブックマークボルト。アカウントもクラウド同期も不要です。"
+  },
+  "commandQuickCaptureDescription": {
+    "message": "クイック保存を開く（既存フォルダーを選択、または新規作成）"
+  },
+  "commandOpenManagerDescription": {
+    "message": "SafeMarks ブックマーク管理を開く"
+  },
+  "commandOpenSettingsDescription": {
+    "message": "SafeMarks 設定を開く"
+  }
+}
