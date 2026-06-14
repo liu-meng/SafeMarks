@@ -8,7 +8,8 @@
     "storage",
     "alarms",
     "activeTab",
-    "contextMenus"
+    "contextMenus",
+    "favicon"
   ],
   "optional_permissions": [
     "bookmarks"

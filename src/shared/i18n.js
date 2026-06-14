@@ -97,6 +97,20 @@ const EN_TRANSLATIONS = Object.freeze({
   "收藏管理": "Bookmark Manager",
   "集中查找、编辑和删除收藏；设置、导入导出与重置仍保留在设置页。":
     "Search, edit, and delete bookmarks in one place. Settings, import/export, and reset stay on the settings page.",
+  "收藏管理导航": "Bookmark management navigation",
+  "收藏": "Bookmarks",
+  "搜索": "Search",
+  "文件夹": "Folders",
+  "全部收藏": "All Bookmarks",
+  "解锁后显示目录树": "Unlock to show the folder tree",
+  "创建保险库后显示目录树": "Create a vault to show the folder tree",
+  "还没有文件夹": "No folders yet",
+  "折叠文件夹": "Collapse folder",
+  "展开文件夹": "Expand folder",
+  "文件夹操作": "Folder actions",
+  "重命名": "Rename",
+  "搜索时仍可重命名，删除前请先清空搜索":
+    "You can still rename while searching. Clear the search before deleting.",
   "检查中...": "Checking...",
   "会话已锁定": "Session Locked",
   "输入主密码后即可继续查看和维护收藏。":
@@ -265,6 +279,8 @@ const EN_TRANSLATIONS = Object.freeze({
     "A compact bookmark maintenance view appears here after unlocking.",
   "解锁后这里会显示按目录分组的收藏维护视图。":
     "A folder-grouped bookmark management view appears here after unlocking.",
+  "解锁后这里会显示目录和收藏列表。":
+    "Folders and the bookmark list appear here after unlocking.",
   "正在按标题、URL、目录和备注筛选收藏。":
     "Filtering bookmarks by title, URL, folder, and note.",
   "正在按标题、URL、目录、备注和标签模糊搜索收藏。":
@@ -273,6 +289,10 @@ const EN_TRANSLATIONS = Object.freeze({
     "The compact view is sorted by saved time in descending order, and you can edit or delete bookmarks directly here.",
   "目录树默认折叠，收藏按保存时间倒序展示，可直接在当前页编辑或删除。":
     "Folders are collapsed by default, and bookmarks remain sorted by saved time in descending order for direct editing or deletion.",
+  "左侧选择目录，右侧按保存时间倒序展示收藏，可直接编辑或删除。":
+    "Choose a folder on the left; bookmarks appear on the right by saved time for direct editing or deletion.",
+  "正在查看“{folder}”及其子目录中的收藏。":
+    "Viewing bookmarks in “{folder}” and its subfolders.",
   "删除文件夹": "Delete Folder",
   "请先清空搜索，再删除文件夹": "Clear the search before deleting a folder.",
   "还没有收藏，先在 popup 保存当前页。": "No bookmarks yet. Save the current page in the popup first.",
@@ -285,12 +305,22 @@ const EN_TRANSLATIONS = Object.freeze({
     "Before deleting bookmarks, enter your master password on this page to unlock.",
   "删除文件夹前，先在当前页输入主密码解锁。":
     "Before deleting a folder, enter your master password on this page to unlock.",
+  "查看文件夹前，先在当前页输入主密码解锁。":
+    "Before viewing a folder, enter your master password on this page to unlock.",
+  "重命名文件夹前，先在当前页输入主密码解锁。":
+    "Before renaming a folder, enter your master password on this page to unlock.",
+  "输入新的文件夹路径": "Enter the new folder path",
+  "已取消重命名文件夹。": "Folder rename cancelled.",
+  "文件夹名称不能为空。": "Folder name cannot be empty.",
+  "目标文件夹已存在，请换一个名称。": "The target folder already exists. Choose another name.",
+  "文件夹名称没有变化。": "Folder name did not change.",
   "要删除的文件夹不存在。": "The folder to delete does not exist.",
   "确认删除文件夹“{folderPath}”及其子目录中的 {count} 条收藏？":
     "Delete folder “{folderPath}” and {count} bookmarks in its subfolders?",
   "已解锁收藏管理页。": "Bookmark manager unlocked.",
   "当前会话已锁定。": "Current session locked.",
   "文件夹已删除。": "Folder deleted.",
+  "文件夹已重命名。": "Folder renamed.",
   "已移动 {count} 条收藏。": "Moved {count} bookmarks.",
   "请先选择收藏并输入要添加的标签。": "Select bookmarks and enter tags to add first.",
   "请先选择收藏并输入要移除的标签。": "Select bookmarks and enter tags to remove first.",

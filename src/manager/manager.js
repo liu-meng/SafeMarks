@@ -1,6 +1,7 @@
 import { getBookmarkSearchResults } from "../core/bookmark-search.js";
 import {
   removeFolderTreeFromBookmarks,
+  renameFolderTreeInBookmarks,
   syncFolderCatalogFromBookmarks
 } from "../core/folder-catalog.js";
 import { flushPendingQuickCaptures } from "../core/quick-capture.js";
@@ -38,6 +39,12 @@ const elements = {
   hero: document.querySelector("#manager-hero"),
   openSettings: document.querySelector("#open-settings"),
   lockSession: document.querySelector("#lock-session"),
+  allBookmarksNav: document.querySelector("#all-bookmarks-nav"),
+  searchNav: document.querySelector("#search-nav"),
+  sidebarSettings: document.querySelector("#sidebar-settings"),
+  sidebarBookmarkCount: document.querySelector("#sidebar-bookmark-count"),
+  folderTree: document.querySelector("#folder-tree"),
+  folderTreeEmpty: document.querySelector("#folder-tree-empty"),
   sessionStatus: document.querySelector("#session-status"),
   unlockPanel: document.querySelector("#unlock-panel"),
   unlockPanelBadge: document.querySelector("#unlock-panel-badge"),
@@ -47,6 +54,7 @@ const elements = {
   message: document.querySelector("#manager-message"),
   bookmarkCount: document.querySelector("#bookmark-count"),
   findDuplicates: document.querySelector("#find-duplicates"),
+  managerListTitle: document.querySelector("#manager-list-title"),
   managerStatus: document.querySelector("#manager-status"),
   searchInput: document.querySelector("#search-input"),
   batchToolbar: document.querySelector("#batch-toolbar"),
@@ -82,11 +90,13 @@ const state = {
   encodedKey: "",
   bookmarks: [],
   query: "",
+  activeFolderPath: null,
   editingBookmarkId: null,
   selectedBookmarkIds: new Set(),
   visibleBookmarkIds: [],
   collapsedFolders: new Set(),
-  knownFolderPaths: new Set()
+  knownFolderPaths: new Set(),
+  openFolderMenuPath: null
 };
 
 function formatQuickCaptureImportMessage(importedCount) {
@@ -149,6 +159,22 @@ function formatTimestamp(timestamp) {
   });
 }
 
+function getBookmarkDomain(url) {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
+}
+
+function getFaviconUrl(url) {
+  if (!globalThis.chrome?.runtime?.getURL) {
+    return "";
+  }
+
+  return chrome.runtime.getURL(`/_favicon/?pageUrl=${encodeURIComponent(url)}&size=32`);
+}
+
 function createFolderNode(name = "", path = "") {
   return {
     name,
@@ -190,6 +216,48 @@ function countTreeBookmarks(node) {
   return total;
 }
 
+function folderContainsBookmark(folderPath, bookmark) {
+  if (folderPath === null) {
+    return true;
+  }
+
+  if (folderPath === "") {
+    return !bookmark.folderPath;
+  }
+
+  return bookmark.folderPath === folderPath || bookmark.folderPath.startsWith(`${folderPath}/`);
+}
+
+function getFolderLabel(folderPath) {
+  if (folderPath === null) {
+    return t("全部收藏");
+  }
+
+  return folderPath || t("未分类");
+}
+
+function getFolderNodeByPath(node, folderPath) {
+  if (folderPath === null) {
+    return node;
+  }
+
+  if (folderPath === "") {
+    return node.bookmarks.length > 0 ? node : null;
+  }
+
+  const segments = folderPath.split("/");
+  let current = node;
+
+  for (const segment of segments) {
+    current = current.children.get(segment);
+    if (!current) {
+      return null;
+    }
+  }
+
+  return current;
+}
+
 function sortFolderNodes(nodes) {
   return [...nodes].sort((left, right) => left.name.localeCompare(right.name));
 }
@@ -203,6 +271,11 @@ function collectFolderPaths(node, paths = new Set()) {
   return paths;
 }
 
+function shouldCollapseFolderByDefault(folderPath) {
+  const segments = folderPath.split("/");
+  return segments.length > 1;
+}
+
 function syncCollapsedFolderState(tree) {
   const currentFolderPaths = collectFolderPaths(tree);
   const nextCollapsedFolders = new Set(
@@ -210,7 +283,7 @@ function syncCollapsedFolderState(tree) {
   );
 
   for (const folderPath of currentFolderPaths) {
-    if (!state.knownFolderPaths.has(folderPath)) {
+    if (!state.knownFolderPaths.has(folderPath) && shouldCollapseFolderByDefault(folderPath)) {
       nextCollapsedFolders.add(folderPath);
     }
   }
@@ -225,8 +298,10 @@ function clearUnlockedState(clearQuery = false) {
   state.editingBookmarkId = null;
   state.selectedBookmarkIds = new Set();
   state.visibleBookmarkIds = [];
+  state.activeFolderPath = null;
   state.collapsedFolders = new Set();
   state.knownFolderPaths = new Set();
+  state.openFolderMenuPath = null;
 
   if (clearQuery) {
     state.query = "";
@@ -339,17 +414,238 @@ async function requireUnlockedSession(copy = t("输入主密码后即可继续�
   return touched.session;
 }
 
-function createActionButton(text, className, handler) {
+const ACTION_ICON_SVG = Object.freeze({
+  edit: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4.8L19.3 9.5a2.1 2.1 0 0 0 0-3L17.5 4.7a2.1 2.1 0 0 0-3 0L4 15.2V20Zm2-2v-1.9l9.9-9.9 1.9 1.9L7.9 18H6Z"/></svg>',
+  copy: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 8V5.8C8 4.8 8.8 4 9.8 4h8.4c1 0 1.8.8 1.8 1.8v8.4c0 1-.8 1.8-1.8 1.8H16v2.2c0 1-.8 1.8-1.8 1.8H5.8c-1 0-1.8-.8-1.8-1.8V9.8C4 8.8 4.8 8 5.8 8H8Zm2 0h4.2c1 0 1.8.8 1.8 1.8V14h2V6h-8v2Zm-4 2v8h8v-8H6Z"/></svg>',
+  delete: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5V4c0-1.1.9-2 2-2h4c1.1 0 2 .9 2 2v1h4v2H4V5h4Zm2 0h4V4h-4v1Zm-3 4h2v10h6V9h2v10c0 1.1-.9 2-2 2H9c-1.1 0-2-.9-2-2V9Zm4 0h2v8h-2V9Z"/></svg>'
+});
+
+function createActionButton(text, className, handler, iconName = "") {
   const button = document.createElement("button");
   button.type = "button";
-  button.className = className;
-  button.textContent = text;
+  button.className = iconName ? `${className} manager-icon-button` : className;
+  button.setAttribute("aria-label", text);
+  button.title = text;
+  if (iconName && ACTION_ICON_SVG[iconName]) {
+    button.innerHTML = ACTION_ICON_SVG[iconName];
+  } else {
+    button.textContent = text;
+  }
   button.addEventListener("click", () => {
     handler().catch((error) => {
       setMessage(error instanceof Error ? error.message : String(error), "error");
     });
   });
   return button;
+}
+
+function setNavButtonActive(button, active) {
+  button.classList.toggle("is-active", active);
+  if (active) {
+    button.setAttribute("aria-current", "page");
+  } else {
+    button.removeAttribute("aria-current");
+  }
+}
+
+function createSidebarFolderButton({
+  label,
+  count,
+  folderPath,
+  depth = 0,
+  hasChildren = false,
+  expanded = true,
+  queryActive = false,
+  deletable = false
+}) {
+  const row = document.createElement("div");
+  row.className = "manager-folder-tree-row";
+  row.style.setProperty("--folder-depth", String(depth));
+
+  if (hasChildren) {
+    const toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.className = "manager-folder-toggle-button";
+    toggle.textContent = expanded ? "-" : "+";
+    toggle.setAttribute("aria-label", expanded ? t("折叠文件夹") : t("展开文件夹"));
+    toggle.addEventListener("click", () => {
+      handleToggleFolder(folderPath).catch((error) => {
+        setMessage(error instanceof Error ? error.message : String(error), "error");
+      });
+    });
+    row.append(toggle);
+  } else {
+    const spacer = document.createElement("span");
+    spacer.className = "manager-folder-toggle-spacer";
+    row.append(spacer);
+  }
+
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "manager-folder-tree-button";
+  button.classList.toggle("is-active", state.activeFolderPath === folderPath);
+  button.setAttribute("aria-pressed", String(state.activeFolderPath === folderPath));
+  button.addEventListener("click", () => {
+    handleSelectFolder(folderPath, { toggle: hasChildren }).catch((error) => {
+      setMessage(error instanceof Error ? error.message : String(error), "error");
+    });
+  });
+
+  const title = document.createElement("span");
+  title.className = "manager-folder-tree-title";
+  title.textContent = label;
+  title.title = label;
+
+  const meta = document.createElement("span");
+  meta.className = "manager-folder-tree-count";
+  meta.textContent = String(count);
+
+  button.append(title, meta);
+  row.append(button);
+
+  if (deletable) {
+    const menuWrap = document.createElement("span");
+    menuWrap.className = "manager-folder-menu-wrap";
+
+    const menuButton = document.createElement("button");
+    menuButton.type = "button";
+    menuButton.className = "manager-folder-menu-button";
+    menuButton.textContent = "⋯";
+    menuButton.setAttribute("aria-label", t("文件夹操作"));
+    menuButton.setAttribute("aria-expanded", String(state.openFolderMenuPath === folderPath));
+    menuButton.addEventListener("click", (event) => {
+      event.stopPropagation();
+      state.openFolderMenuPath = state.openFolderMenuPath === folderPath ? null : folderPath;
+      renderView();
+    });
+    menuWrap.append(menuButton);
+
+    if (state.openFolderMenuPath === folderPath) {
+      const menu = document.createElement("div");
+      menu.className = "manager-folder-menu";
+      menu.setAttribute("role", "menu");
+
+      const renameButton = document.createElement("button");
+      renameButton.type = "button";
+      renameButton.className = "manager-folder-menu-item";
+      renameButton.textContent = t("重命名");
+      renameButton.setAttribute("role", "menuitem");
+      renameButton.addEventListener("click", (event) => {
+        event.stopPropagation();
+        state.openFolderMenuPath = null;
+        handleRenameFolder(folderPath).catch((error) => {
+          setMessage(error instanceof Error ? error.message : String(error), "error");
+        });
+      });
+
+      const deleteButton = document.createElement("button");
+      deleteButton.type = "button";
+      deleteButton.className = "manager-folder-menu-item manager-folder-menu-danger";
+      deleteButton.textContent = t("删除");
+      deleteButton.setAttribute("role", "menuitem");
+      deleteButton.disabled = queryActive;
+      if (queryActive) {
+        deleteButton.title = t("请先清空搜索，再删除文件夹");
+      }
+      deleteButton.addEventListener("click", (event) => {
+        event.stopPropagation();
+        state.openFolderMenuPath = null;
+        handleDeleteFolder(folderPath).catch((error) => {
+          setMessage(error instanceof Error ? error.message : String(error), "error");
+        });
+      });
+
+      menu.append(renameButton, deleteButton);
+      menuWrap.append(menu);
+    }
+
+    if (queryActive) {
+      menuButton.title = t("搜索时仍可重命名，删除前请先清空搜索");
+    }
+    row.append(menuWrap);
+  }
+
+  return row;
+}
+
+function createSidebarFolderNode(node, depth, queryActive) {
+  const item = document.createElement("li");
+  item.className = "manager-folder-tree-item";
+
+  const expanded = queryActive || !state.collapsedFolders.has(node.path);
+  const hasChildren = node.children.size > 0;
+
+  item.append(createSidebarFolderButton({
+    label: node.name,
+    count: countTreeBookmarks(node),
+    folderPath: node.path,
+    depth,
+    hasChildren,
+    expanded,
+    queryActive,
+    deletable: true
+  }));
+
+  if (hasChildren) {
+    const nestedList = document.createElement("ul");
+    nestedList.className = "manager-folder-tree manager-folder-tree-nested";
+    nestedList.hidden = !expanded;
+
+    for (const child of sortFolderNodes(node.children.values())) {
+      nestedList.append(createSidebarFolderNode(child, depth + 1, queryActive));
+    }
+
+    item.append(nestedList);
+  }
+
+  return item;
+}
+
+function renderSidebar(unlocked) {
+  elements.sidebarBookmarkCount.textContent = String(state.bookmarks.length);
+  elements.folderTree.replaceChildren();
+  elements.folderTreeEmpty.hidden = true;
+  setNavButtonActive(elements.allBookmarksNav, state.activeFolderPath === null);
+
+  if (!unlocked) {
+    elements.folderTreeEmpty.textContent = state.hasVault
+      ? t("解锁后显示目录树")
+      : t("创建保险库后显示目录树");
+    elements.folderTreeEmpty.hidden = false;
+    return null;
+  }
+
+  const tree = buildBookmarkTree(state.bookmarks);
+  syncCollapsedFolderState(tree);
+
+  if (!getFolderNodeByPath(tree, state.activeFolderPath)) {
+    state.activeFolderPath = null;
+    setNavButtonActive(elements.allBookmarksNav, true);
+  }
+
+  const queryActive = Boolean(state.query.trim());
+  if (tree.bookmarks.length > 0) {
+    const unfiledItem = document.createElement("li");
+    unfiledItem.className = "manager-folder-tree-item";
+    unfiledItem.append(createSidebarFolderButton({
+      label: t("未分类"),
+      count: tree.bookmarks.length,
+      folderPath: "",
+      depth: 0
+    }));
+    elements.folderTree.append(unfiledItem);
+  }
+
+  for (const child of sortFolderNodes(tree.children.values())) {
+    elements.folderTree.append(createSidebarFolderNode(child, 0, queryActive));
+  }
+
+  if (state.bookmarks.length === 0) {
+    elements.folderTreeEmpty.textContent = t("还没有文件夹");
+    elements.folderTreeEmpty.hidden = false;
+  }
+
+  return tree;
 }
 
 function createManagerRow(bookmark) {
@@ -471,6 +767,20 @@ function createManagerRow(bookmark) {
   });
   selectCell.append(checkbox);
 
+  const favicon = document.createElement("span");
+  favicon.className = "manager-row-favicon";
+  const faviconUrl = getFaviconUrl(bookmark.url);
+  if (faviconUrl) {
+    const faviconImage = document.createElement("img");
+    faviconImage.alt = "";
+    faviconImage.src = faviconUrl;
+    faviconImage.width = 16;
+    faviconImage.height = 16;
+    favicon.append(faviconImage);
+  } else {
+    favicon.textContent = (getBookmarkDomain(bookmark.url) || bookmark.title || "S").charAt(0).toUpperCase();
+  }
+
   const main = document.createElement("div");
   main.className = "manager-row-main";
   main.dataset.label = t("收藏");
@@ -485,7 +795,7 @@ function createManagerRow(bookmark) {
 
   const urlLine = document.createElement("p");
   urlLine.className = "manager-row-url";
-  urlLine.textContent = bookmark.url;
+  urlLine.textContent = getBookmarkDomain(bookmark.url);
   urlLine.title = bookmark.url;
 
   main.append(titleLink, urlLine);
@@ -493,17 +803,8 @@ function createManagerRow(bookmark) {
     main.append(createTagList(bookmark.tags));
   }
 
-  const folder = document.createElement("div");
-  folder.className = "manager-row-cell";
-  folder.dataset.label = t("目录");
-  const folderText = document.createElement("p");
-  folderText.className = "manager-row-text";
-  folderText.textContent = bookmark.folderPath || t("未分类");
-  folderText.title = folderText.textContent;
-  folder.append(folderText);
-
   const note = document.createElement("div");
-  note.className = "manager-row-cell";
+  note.className = "manager-row-cell manager-row-note-cell";
   note.dataset.label = t("备注");
   const noteText = document.createElement("p");
   noteText.className = "manager-row-text manager-row-note-text";
@@ -512,7 +813,7 @@ function createManagerRow(bookmark) {
   note.append(noteText);
 
   const time = document.createElement("div");
-  time.className = "manager-row-cell";
+  time.className = "manager-row-cell manager-row-time-cell";
   time.dataset.label = t("保存时间");
   const timeText = document.createElement("p");
   timeText.className = "manager-row-time";
@@ -523,105 +824,35 @@ function createManagerRow(bookmark) {
   actions.className = "manager-row-cell manager-row-actions";
   actions.dataset.label = t("操作");
   actions.append(
-    createActionButton(t("编辑"), "manager-action-button", () => handleStartEdit(bookmark.id)),
+    createActionButton(t("编辑"), "manager-action-button", () => handleStartEdit(bookmark.id), "edit"),
     createActionButton(t("复制"), "manager-action-button", async () => {
       await copyTextToClipboard(bookmark.url);
       setMessage(t("已复制 URL。"), "success");
-    }),
-    createActionButton(t("删除"), "manager-delete-button", () => handleDeleteBookmark(bookmark.id))
+    }, "copy"),
+    createActionButton(t("删除"), "manager-delete-button", () => handleDeleteBookmark(bookmark.id), "delete")
   );
 
-  item.append(selectCell, main, folder, note, time, actions);
+  item.append(selectCell, favicon, main, note, time, actions);
   return item;
-}
-
-function createFolderGroup(node, queryActive) {
-  const group = document.createElement("li");
-  group.className = "bookmark-folder-group manager-folder-group";
-
-  const expanded = queryActive || !state.collapsedFolders.has(node.path);
-
-  const header = document.createElement("div");
-  header.className = "manager-folder-header";
-
-  const toggle = document.createElement("button");
-  toggle.type = "button";
-  toggle.className = "bookmark-folder-toggle manager-folder-toggle";
-  toggle.setAttribute("aria-expanded", String(expanded));
-  toggle.addEventListener("click", () => {
-    handleToggleFolder(node.path).catch((error) => {
-      setMessage(error instanceof Error ? error.message : String(error), "error");
-    });
-  });
-
-  const folderMain = document.createElement("span");
-  folderMain.className = "bookmark-folder-main";
-
-  const folderTitle = document.createElement("span");
-  folderTitle.className = "bookmark-folder-title";
-  folderTitle.textContent = node.name;
-
-  const folderMeta = document.createElement("span");
-  folderMeta.className = "bookmark-folder-meta";
-  folderMeta.textContent = t("{count} 条收藏", {
-    count: countTreeBookmarks(node)
-  });
-
-  const folderCaret = document.createElement("span");
-  folderCaret.className = "bookmark-folder-caret";
-  folderCaret.setAttribute("aria-hidden", "true");
-  folderCaret.textContent = expanded ? "-" : "+";
-
-  folderMain.append(folderTitle, folderMeta);
-  toggle.append(folderMain, folderCaret);
-
-  const deleteFolderButton = document.createElement("button");
-  deleteFolderButton.type = "button";
-  deleteFolderButton.className = "manager-delete-button manager-folder-delete-button";
-  deleteFolderButton.textContent = t("删除文件夹");
-  deleteFolderButton.disabled = queryActive;
-  if (queryActive) {
-    deleteFolderButton.title = t("请先清空搜索，再删除文件夹");
-  }
-  deleteFolderButton.addEventListener("click", () => {
-    handleDeleteFolder(node.path).catch((error) => {
-      setMessage(error instanceof Error ? error.message : String(error), "error");
-    });
-  });
-
-  header.append(toggle, deleteFolderButton);
-  group.append(header);
-
-  const nestedList = document.createElement("ul");
-  nestedList.className = "bookmark-list manager-bookmark-list bookmark-nested-list manager-nested-list";
-  nestedList.hidden = !expanded;
-  appendTreeContent(nestedList, node, queryActive);
-  group.append(nestedList);
-
-  return group;
-}
-
-function appendTreeContent(listElement, node, queryActive) {
-  for (const child of sortFolderNodes(node.children.values())) {
-    listElement.append(createFolderGroup(child, queryActive));
-  }
-
-  for (const bookmark of node.bookmarks) {
-    listElement.append(createManagerRow(bookmark));
-  }
 }
 
 function renderView() {
   const unlocked = state.hasVault && state.sessionState === "unlocked";
-  const filteredBookmarks = unlocked
+  const searchResults = unlocked
     ? getBookmarkSearchResults(state.bookmarks, state.query)
     : [];
+  renderSidebar(unlocked);
+  const filteredBookmarks = searchResults.filter((bookmark) =>
+    folderContainsBookmark(state.activeFolderPath, bookmark)
+  );
+  const activeFolderLabel = getFolderLabel(state.activeFolderPath);
 
   elements.searchInput.disabled = !unlocked;
   elements.findDuplicates.hidden = !unlocked;
   elements.searchInput.value = state.query;
   elements.bookmarkList.replaceChildren();
   elements.emptyState.hidden = true;
+  elements.managerListTitle.textContent = activeFolderLabel;
   renderBatchToolbar(unlocked, filteredBookmarks);
 
   if (!state.hasVault) {
@@ -639,12 +870,13 @@ function renderView() {
       state.sessionState === "expired"
         ? t("当前会话已过期，请重新解锁后再继续维护收藏。")
         : t("先解锁后，才能查看完整信息并编辑或删除收藏。");
-    elements.emptyState.textContent = t("解锁后这里会显示按目录分组的收藏维护视图。");
+    elements.emptyState.textContent = t("解锁后这里会显示目录和收藏列表。");
     elements.emptyState.hidden = false;
     return;
   }
 
-  elements.bookmarkCount.textContent = state.query.trim()
+  const filtering = state.query.trim() || state.activeFolderPath !== null;
+  elements.bookmarkCount.textContent = filtering
     ? t("{visibleCount} / {totalCount} 条收藏", {
         visibleCount: filteredBookmarks.length,
         totalCount: state.bookmarks.length
@@ -652,12 +884,16 @@ function renderView() {
     : t("{count} 条收藏", { count: state.bookmarks.length });
   elements.managerStatus.textContent = state.query.trim()
     ? t("正在按标题、URL、目录、备注和标签模糊搜索收藏。")
-    : t("目录树默认折叠，收藏按保存时间倒序展示，可直接在当前页编辑或删除。");
+    : state.activeFolderPath !== null
+      ? t("正在查看“{folder}”及其子目录中的收藏。", { folder: activeFolderLabel })
+      : t("左侧选择目录，右侧按保存时间倒序展示收藏，可直接编辑或删除。");
 
   if (filteredBookmarks.length === 0) {
     if (!state.query.trim()) {
-      state.collapsedFolders = new Set();
-      state.knownFolderPaths = new Set();
+      if (state.bookmarks.length === 0) {
+        state.collapsedFolders = new Set();
+        state.knownFolderPaths = new Set();
+      }
     }
     elements.emptyState.textContent =
       state.bookmarks.length === 0
@@ -667,12 +903,9 @@ function renderView() {
     return;
   }
 
-  const queryActive = Boolean(state.query.trim());
-  const tree = buildBookmarkTree(filteredBookmarks);
-  if (!queryActive) {
-    syncCollapsedFolderState(tree);
+  for (const bookmark of filteredBookmarks) {
+    elements.bookmarkList.append(createManagerRow(bookmark));
   }
-  appendTreeContent(elements.bookmarkList, tree, queryActive);
 }
 
 async function refreshView(message = "") {
@@ -852,6 +1085,68 @@ async function handleDeleteFolder(folderPath) {
   }
 
   await persistBookmarks(nextBookmarks, t("文件夹已删除。"));
+}
+
+async function handleRenameFolder(folderPath) {
+  await requireUnlockedSession(t("重命名文件夹前，先在当前页输入主密码解锁。"));
+
+  const nextPath = window.prompt(t("输入新的文件夹路径"), folderPath);
+  if (nextPath === null) {
+    setMessage(t("已取消重命名文件夹。"), "info");
+    renderView();
+    return;
+  }
+
+  if (!nextPath.trim()) {
+    throw new Error(t("文件夹名称不能为空。"));
+  }
+
+  const { nextBookmarks, renamedCount, conflict, targetPath } = renameFolderTreeInBookmarks(
+    state.bookmarks,
+    folderPath,
+    nextPath
+  );
+
+  if (conflict) {
+    throw new Error(t("目标文件夹已存在，请换一个名称。"));
+  }
+
+  if (renamedCount === 0) {
+    setMessage(t("文件夹名称没有变化。"), "info");
+    renderView();
+    return;
+  }
+
+  state.activeFolderPath = targetPath;
+  await persistBookmarks(nextBookmarks, t("文件夹已重命名。"));
+}
+
+async function handleSelectFolder(folderPath, options = {}) {
+  if (folderPath !== null) {
+    await requireUnlockedSession(t("查看文件夹前，先在当前页输入主密码解锁。"));
+  }
+
+  state.activeFolderPath = folderPath;
+  state.editingBookmarkId = null;
+  state.openFolderMenuPath = null;
+
+  if (options.toggle && folderPath !== null) {
+    if (state.collapsedFolders.has(folderPath)) {
+      state.collapsedFolders.delete(folderPath);
+    } else {
+      state.collapsedFolders.add(folderPath);
+    }
+  }
+
+  renderView();
+}
+
+function handleSearchNav() {
+  state.activeFolderPath = null;
+  state.openFolderMenuPath = null;
+  renderView();
+  elements.searchInput.focus();
+  elements.searchInput.select();
 }
 
 function handleSelectVisible() {
@@ -1062,6 +1357,13 @@ function handleSearchInput() {
 }
 
 elements.openSettings.addEventListener("click", () => chrome.runtime.openOptionsPage());
+elements.sidebarSettings.addEventListener("click", () => chrome.runtime.openOptionsPage());
+elements.allBookmarksNav.addEventListener("click", () => {
+  handleSelectFolder(null).catch((error) => {
+    setMessage(error instanceof Error ? error.message : String(error), "error");
+  });
+});
+elements.searchNav.addEventListener("click", handleSearchNav);
 elements.lockSession.addEventListener("click", async () => {
   await sessionLock();
   clearUnlockedState();
@@ -1070,6 +1372,26 @@ elements.lockSession.addEventListener("click", async () => {
 });
 elements.unlockForm.addEventListener("submit", handleUnlockSubmit);
 elements.searchInput.addEventListener("input", handleSearchInput);
+document.addEventListener("click", (event) => {
+  if (!state.openFolderMenuPath) {
+    return;
+  }
+
+  if (event.target instanceof Element && event.target.closest(".manager-folder-menu-wrap")) {
+    return;
+  }
+
+  state.openFolderMenuPath = null;
+  renderView();
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape" || !state.openFolderMenuPath) {
+    return;
+  }
+
+  state.openFolderMenuPath = null;
+  renderView();
+});
 elements.findDuplicates.addEventListener("click", handleFindDuplicates);
 elements.selectVisible.addEventListener("click", handleSelectVisible);
 elements.clearSelection.addEventListener("click", handleClearSelection);

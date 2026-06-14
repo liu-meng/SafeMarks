@@ -8,96 +8,128 @@
     <link rel="stylesheet" href="./manager.css" />
   </head>
   <body>
-    <main class="app-shell manager-shell stack">
-      <section id="manager-hero" class="panel panel-pad manager-hero">
-        <div class="section-head manager-hero-head">
-          <div class="stack manager-hero-copy">
-            <p class="eyebrow">SafeMarks</p>
-            <h1>收藏管理</h1>
-            <p class="subtitle">集中查找、编辑和删除收藏；设置、导入导出与重置仍保留在设置页。</p>
-            <p id="session-status" class="badge">检查中...</p>
-          </div>
-          <div class="button-row manager-hero-actions">
-            <button id="open-settings" class="ghost-button" type="button">设置</button>
-            <button id="lock-session" class="button-secondary" type="button" hidden>锁定</button>
-          </div>
+    <main class="app-shell manager-shell">
+      <aside id="manager-sidebar" class="manager-sidebar panel">
+        <div class="manager-brand">
+          <img src="../../assets/icons/safemarks-32.png" alt="" width="24" height="24" />
+          <span>SafeMarks</span>
         </div>
 
-        <section id="unlock-panel" class="stack unlock-panel" hidden>
-          <p id="unlock-panel-badge" class="badge unlock-status-badge">会话已锁定</p>
-          <p id="unlock-panel-copy" class="helper-text">输入主密码后即可继续查看和维护收藏。</p>
-          <form id="unlock-form" class="stack unlock-form">
-            <input
-              id="unlock-password"
-              class="input unlock-password-input"
-              type="password"
-              autocomplete="current-password"
-              placeholder="主密码"
-              aria-label="主密码"
-              required
-            />
-            <div class="button-row unlock-actions">
-              <button class="button" type="submit">解锁并查看</button>
-            </div>
-          </form>
+        <nav class="manager-sidebar-nav" aria-label="收藏管理导航">
+          <button id="all-bookmarks-nav" class="manager-nav-button is-active" type="button">
+            <span>收藏</span>
+            <span id="sidebar-bookmark-count" class="manager-nav-count">0</span>
+          </button>
+          <button id="search-nav" class="manager-nav-button" type="button">
+            <span>搜索</span>
+          </button>
+        </nav>
+
+        <section class="manager-folder-nav" aria-labelledby="folder-tree-title">
+          <div class="manager-sidebar-section-head">
+            <h2 id="folder-tree-title">文件夹</h2>
+          </div>
+          <div id="folder-tree-empty" class="manager-folder-empty">解锁后显示目录树</div>
+          <ul id="folder-tree" class="manager-folder-tree"></ul>
         </section>
-      </section>
 
-      <p id="manager-message" class="message message-info" hidden></p>
+        <div class="manager-sidebar-spacer"></div>
 
-      <section class="panel panel-pad stack manager-panel">
-        <div class="section-head manager-panel-head">
-          <div class="stack panel-tight">
-            <h2>维护收藏列表</h2>
-            <p id="manager-status" class="helper-text">检查当前保险库状态中...</p>
-          </div>
-          <div class="button-row">
-            <p id="bookmark-count" class="badge">检查中...</p>
-            <button id="find-duplicates" class="button-secondary" type="button" hidden>查找重复收藏</button>
-          </div>
-        </div>
+        <button id="sidebar-settings" class="manager-nav-button manager-sidebar-bottom" type="button">
+          <span>设置</span>
+        </button>
+      </aside>
 
-        <label class="label">
-          <span>搜索收藏</span>
-          <input
-            id="search-input"
-            class="input"
-            type="search"
-            placeholder="支持标题、URL、目录、备注和标签的模糊搜索"
-            disabled
-          />
-        </label>
-
-        <section id="batch-toolbar" class="batch-toolbar" hidden>
-          <div class="batch-toolbar-head">
-            <p id="batch-selection-count" class="badge">已选择 0 条</p>
-            <div class="button-row">
-              <button id="select-visible" class="button-secondary" type="button">选择当前可见</button>
-              <button id="clear-selection" class="ghost-button" type="button">清空选择</button>
+      <div class="manager-content stack">
+        <section id="manager-hero" class="panel panel-pad manager-hero">
+          <div class="section-head manager-hero-head">
+            <div class="stack manager-hero-copy">
+              <p class="eyebrow">SafeMarks</p>
+              <h1>收藏管理</h1>
+              <p class="subtitle">集中查找、编辑和删除收藏；设置、导入导出与重置仍保留在设置页。</p>
+              <p id="session-status" class="badge">检查中...</p>
+            </div>
+            <div class="button-row manager-hero-actions">
+              <button id="open-settings" class="ghost-button" type="button">设置</button>
+              <button id="lock-session" class="button-secondary" type="button" hidden>锁定</button>
             </div>
           </div>
-          <div class="batch-actions">
-            <label class="label batch-folder-label">
-              <span>移动到目录</span>
+
+          <section id="unlock-panel" class="stack unlock-panel" hidden>
+            <p id="unlock-panel-badge" class="badge unlock-status-badge">会话已锁定</p>
+            <p id="unlock-panel-copy" class="helper-text">输入主密码后即可继续查看和维护收藏。</p>
+            <form id="unlock-form" class="stack unlock-form">
               <input
-                id="batch-folder-path"
+                id="unlock-password"
+                class="input unlock-password-input"
+                type="password"
+                autocomplete="current-password"
+                placeholder="主密码"
+                aria-label="主密码"
+                required
+              />
+              <div class="button-row unlock-actions">
+                <button class="button" type="submit">解锁并查看</button>
+              </div>
+            </form>
+          </section>
+        </section>
+
+        <p id="manager-message" class="message message-info" hidden></p>
+
+        <section class="panel panel-pad stack manager-panel">
+          <div class="section-head manager-panel-head">
+            <div class="stack panel-tight" hidden>
+              <h2 id="manager-list-title">维护收藏列表</h2>
+              <p id="manager-status" class="helper-text">检查当前保险库状态中...</p>
+            </div>
+            <label class="label manager-search-label">
+              <span>搜索收藏</span>
+              <input
+                id="search-input"
                 class="input"
-                type="text"
-                placeholder="留空表示未分类"
+                type="search"
+                placeholder="支持标题、URL、目录、备注和标签的模糊搜索"
+                disabled
               />
             </label>
-            <button id="batch-move" class="button-secondary" type="button">移动</button>
-            <div id="batch-add-tags-field"></div>
-            <button id="batch-add-tags" class="button-secondary" type="button">添加标签</button>
-            <div id="batch-remove-tags-field"></div>
-            <button id="batch-remove-tags" class="button-secondary" type="button">移除标签</button>
-            <button id="batch-delete" class="button-danger" type="button">删除选中</button>
+            <div class="button-row">
+              <p id="bookmark-count" class="badge">检查中...</p>
+              <button id="find-duplicates" class="button-secondary" type="button" hidden>查找重复收藏</button>
+            </div>
           </div>
-        </section>
 
-        <div id="empty-state" class="empty-state">加载中...</div>
-        <ul id="bookmark-list" class="bookmark-list manager-bookmark-list"></ul>
-      </section>
+          <section id="batch-toolbar" class="batch-toolbar" hidden>
+            <div class="batch-toolbar-head">
+              <p id="batch-selection-count" class="badge">已选择 0 条</p>
+              <div class="button-row">
+                <button id="select-visible" class="button-secondary" type="button">选择当前可见</button>
+                <button id="clear-selection" class="ghost-button" type="button">清空选择</button>
+              </div>
+            </div>
+            <div class="batch-actions">
+              <label class="label batch-folder-label">
+                <span>移动到目录</span>
+                <input
+                  id="batch-folder-path"
+                  class="input"
+                  type="text"
+                  placeholder="留空表示未分类"
+                />
+              </label>
+              <button id="batch-move" class="button-secondary" type="button">移动</button>
+              <div id="batch-add-tags-field"></div>
+              <button id="batch-add-tags" class="button-secondary" type="button">添加标签</button>
+              <div id="batch-remove-tags-field"></div>
+              <button id="batch-remove-tags" class="button-secondary" type="button">移除标签</button>
+              <button id="batch-delete" class="button-danger" type="button">删除选中</button>
+            </div>
+          </section>
+
+          <div id="empty-state" class="empty-state">加载中...</div>
+          <ul id="bookmark-list" class="bookmark-list manager-bookmark-list"></ul>
+        </section>
+      </div>
     </main>
 
     <script type="module" src="./manager.js"></script>

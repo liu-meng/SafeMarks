@@ -50,6 +50,7 @@ import { createSessionRecord } from "../src/core/session.js";
 import {
   getFolderCatalogFromBookmarks,
   removeFolderTreeFromBookmarks,
+  renameFolderTreeInBookmarks,
   syncFolderCatalogFromBookmarks
 } from "../src/core/folder-catalog.js";
 import {
@@ -107,13 +108,23 @@ test("quick capture page exposes shared folder picker target", () => {
 
 test("manager page exposes batch toolbar controls", () => {
   const html = readFileSync(new URL("../src/manager/index.html", import.meta.url), "utf8");
+  const script = readFileSync(new URL("../src/manager/manager.js", import.meta.url), "utf8");
+  const manifest = JSON.parse(readFileSync(new URL("../manifest.json", import.meta.url), "utf8"));
 
+  assert.match(html, /id="manager-sidebar"/);
+  assert.match(html, /id="folder-tree"/);
+  assert.match(html, /id="all-bookmarks-nav"/);
+  assert.match(html, /id="search-nav"/);
+  assert.match(html, /id="sidebar-settings"/);
   assert.match(html, /id="batch-toolbar"/);
   assert.match(html, /id="select-visible"/);
   assert.match(html, /id="batch-folder-path"/);
   assert.match(html, /id="batch-add-tags-field"/);
   assert.match(html, /id="batch-remove-tags-field"/);
   assert.match(html, /id="batch-delete"/);
+  assert.match(script, /manager-folder-menu-button/);
+  assert.match(script, /manager-folder-menu-item/);
+  assert.ok(manifest.permissions.includes("favicon"));
 });
 
 test("tag normalization trims hashes deduplicates and limits values", () => {
@@ -1113,6 +1124,42 @@ test("removeFolderTreeFromBookmarks respects folder path boundaries", () => {
     result.nextBookmarks.map((bookmark) => bookmark.id),
     ["2"]
   );
+});
+
+test("renameFolderTreeInBookmarks renames a folder and descendants", () => {
+  const bookmarks = [
+    { id: "1", folderPath: "Work" },
+    { id: "2", folderPath: "Work/API" },
+    { id: "3", folderPath: "Work/API/Auth" },
+    { id: "4", folderPath: "Workshop" },
+    { id: "5", folderPath: "" }
+  ];
+
+  const result = renameFolderTreeInBookmarks(bookmarks, " Work ", " Team ");
+
+  assert.equal(result.conflict, false);
+  assert.equal(result.renamedCount, 3);
+  assert.deepEqual(result.nextBookmarks.map((bookmark) => bookmark.folderPath), [
+    "Team",
+    "Team/API",
+    "Team/API/Auth",
+    "Workshop",
+    ""
+  ]);
+});
+
+test("renameFolderTreeInBookmarks blocks existing target folders", () => {
+  const bookmarks = [
+    { id: "1", folderPath: "Work" },
+    { id: "2", folderPath: "Work/API" },
+    { id: "3", folderPath: "Team" }
+  ];
+
+  const result = renameFolderTreeInBookmarks(bookmarks, "Work", "Team");
+
+  assert.equal(result.conflict, true);
+  assert.equal(result.renamedCount, 0);
+  assert.deepEqual(result.nextBookmarks, bookmarks);
 });
 
 test("batch helpers move tag and delete only selected bookmarks", () => {
