@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>欢迎使用 SafeMarks</title>
+    <link rel="stylesheet" href="../shared/styles.css" />
+    <link rel="stylesheet" href="./onboarding.css" />
+  </head>
+  <body>
+    <main class="onboarding-shell">
+      <div class="onboarding-progress">
+        <div class="onboarding-progress-bar">
+          <div id="progress-fill" class="onboarding-progress-fill" style="width: 33%"></div>
+        </div>
+        <p id="progress-label" class="onboarding-progress-label">第 1 步 / 3</p>
+      </div>
+
+      <!-- Step 1: Set password -->
+      <section id="step-password" class="onboarding-step">
+        <div class="onboarding-illustration">
+          <div class="crypto-animation">
+            <div class="crypto-lock">
+              <div class="crypto-lock-body"></div>
+              <div class="crypto-lock-shackle"></div>
+            </div>
+            <div class="crypto-particles">
+              <span></span><span></span><span></span><span></span>
+            </div>
+          </div>
+        </div>
+        <div class="onboarding-content">
+          <p class="eyebrow">本地加密，无需账号</p>
+          <h1>设置主密码</h1>
+          <p class="onboarding-description">
+            SafeMarks 使用 AES-256 加密保护您的书签。所有数据仅存储在本地浏览器中，
+            没有云同步，没有账号，只有您知道密码。
+          </p>
+          <form id="onboarding-setup-form" class="stack">
+            <label class="label">
+              <span>主密码</span>
+              <input id="onboarding-password" class="input" type="password" required minlength="1" autocomplete="new-password" />
+            </label>
+            <label class="label">
+              <span>确认密码</span>
+              <input id="onboarding-confirm" class="input" type="password" required minlength="1" autocomplete="new-password" />
+            </label>
+            <button type="submit" class="button-primary">创建保险库</button>
+          </form>
+          <p id="step-password-error" class="error-text" hidden></p>
+        </div>
+      </section>
+
+      <!-- Step 2: Import bookmarks -->
+      <section id="step-import" class="onboarding-step" hidden>
+        <div class="onboarding-illustration">
+          <div class="crypto-animation">
+            <div class="import-icon">
+              <div class="import-arrow"></div>
+              <div class="import-box"></div>
+            </div>
+          </div>
+        </div>
+        <div class="onboarding-content">
+          <p class="eyebrow">可选步骤</p>
+          <h1>导入现有书签</h1>
+          <p class="onboarding-description">
+            把浏览器中已有的书签带进 SafeMarks，原有的目录结构会一起保留。
+            这一步也可以稍后在设置页完成。
+          </p>
+          <div class="button-row">
+            <button id="import-browser" class="button-primary" type="button">导入浏览器书签</button>
+            <button id="skip-import" class="ghost-button" type="button">稍后再说</button>
+          </div>
+          <p id="step-import-status" class="helper-text" hidden></p>
+        </div>
+      </section>
+
+      <!-- Step 3: Complete -->
+      <section id="step-complete" class="onboarding-step" hidden>
+        <div class="onboarding-illustration">
+          <div class="crypto-animation">
+            <div class="complete-check">✓</div>
+          </div>
+        </div>
+        <div class="onboarding-content">
+          <p class="eyebrow">准备好了</p>
+          <h1>可以开始用了</h1>
+          <p class="onboarding-description">
+            SafeMarks 已就绪。点击工具栏图标即可保存当前页面，
+            或使用快捷键快速收藏。主密码无法找回，请牢记。
+          </p>
+          <div class="onboarding-tips">
+            <div class="tip-card">
+              <strong>锁定状态</strong>
+              <p>快速收藏会暂时未加密暂存，解锁后自动写入保险库</p>
+            </div>
+            <div class="tip-card">
+              <strong>定期备份</strong>
+              <p>建议定期在设置页导出加密备份</p>
+            </div>
+          </div>
+          <button id="finish-onboarding" class="button-primary" type="button">开始使用 SafeMarks</button>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="./onboarding.js"></script>
+  </body>
+</html>

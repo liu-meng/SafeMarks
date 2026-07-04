@@ -265,6 +265,91 @@ body {
   font-size: 12px;
 }
 
+.manager-tag-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.manager-tag-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.manager-tag-item {
+  display: flex;
+}
+
+.manager-tag-button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.manager-tag-button:hover {
+  background: var(--accent-soft);
+  border-color: var(--line);
+}
+
+.manager-tag-button.is-active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.manager-tag-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.manager-tag-count {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--muted);
+  margin-left: 6px;
+}
+
+.tag-context-menu {
+  position: fixed;
+  z-index: 1000;
+  background: var(--card-strong);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+  padding: 4px 0;
+  min-width: 120px;
+}
+
+.tag-context-menu button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--text);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.tag-context-menu button:hover {
+  background: var(--accent-soft);
+}
+
 .manager-sidebar-spacer {
   flex: 1 1 auto;
 }
@@ -385,6 +470,21 @@ body {
   flex-wrap: nowrap;
 }
 
+.sort-select {
+  font-size: 13px;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--card-strong);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.sort-select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .manager-row {
   display: grid;
   grid-template-columns: 28px 34px minmax(0, 2.6fr) minmax(0, 1.4fr) 112px auto;
@@ -435,6 +535,22 @@ body {
   border-color: rgba(18, 101, 109, 0.18);
   background: #fff;
   box-shadow: 0 8px 18px rgba(24, 49, 44, 0.05);
+}
+
+.bookmark-item.is-focused .manager-row {
+  border-color: var(--accent);
+  background: #fff;
+  box-shadow: 0 0 0 2px var(--accent-soft), 0 8px 18px rgba(24, 49, 44, 0.05);
+}
+
+.bookmark-item.is-dragging {
+  opacity: 0.5;
+}
+
+.manager-folder-tree-button.is-drop-target {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
 }
 
 .manager-row-select {

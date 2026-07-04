@@ -538,6 +538,26 @@ const EN_TRANSLATIONS = Object.freeze({
     "When the current page is already saved, open and edit the existing bookmark instead of duplicating it",
   "更新提示降级为轻量横幅，降低对核心操作的干扰":
     "Changed update notices to a lighter banner that interferes less with core actions",
+  "搜索结果高亮匹配文本，快速定位目标收藏":
+    "Search results now highlight matched text for quick visual scanning",
+  "新增搜索语法：支持 tag:、folder:、site: 前缀精确筛选":
+    "Added search syntax: use tag:, folder:, or site: prefixes for precise filtering",
+  "搜索框记录最近搜索历史，聚焦时可快速选用":
+    "Search input now remembers recent queries and shows them on focus",
+  "管理页新增排序选项（按时间、按标题字母）":
+    "Added sort options in the manager (by date or title)",
+  "管理页侧边栏新增标签筛选面板，支持组合筛选和标签管理（重命名/删除）":
+    "Added a tag filter panel in the manager sidebar with combined filtering and tag management (rename/delete)",
+  "管理页支持键盘快捷导航（j/k/Enter/e/x/d）":
+    "Added keyboard navigation in the manager (j/k/Enter/e/x/d)",
+  "支持拖拽书签到侧边栏文件夹快速移动":
+    "Drag and drop bookmarks onto sidebar folders to move them",
+  "全新独立引导页面，配合加密原理动画":
+    "New standalone onboarding page with encryption animation",
+  "Popup 新用户快捷键提示（前 5 次显示，可关闭）":
+    "Popup shows shortcut hints for new users (first 5 opens, dismissible)",
+  "Popup 搜索结果分页加载，大量结果不再卡顿":
+    "Popup search results load in pages to avoid lag with large vaults",
   "新增日语界面与浏览器语言自动识别":
     "Added Japanese UI and automatic browser language detection",
   "语言选择器改用固定语言名称，避免随当前界面语言变化":
@@ -644,6 +664,26 @@ const JA_TRANSLATIONS = Object.freeze({
     "現在のページが保存済みの場合は既存ブックマークを直接表示・編集し、重複保存を減らす",
   "更新提示降级为轻量横幅，降低对核心操作的干扰":
     "更新通知を軽量なバナーに変更し、主要操作への干渉を軽減",
+  "搜索结果高亮匹配文本，快速定位目标收藏":
+    "検索結果の一致テキストをハイライトし、目的のブックマークをすばやく特定",
+  "新增搜索语法：支持 tag:、folder:、site: 前缀精确筛选":
+    "検索構文を追加：tag:、folder:、site: プレフィックスで絞り込み",
+  "搜索框记录最近搜索历史，聚焦时可快速选用":
+    "検索ボックスが最近の検索履歴を記憶し、フォーカス時にすぐ選択可能",
+  "管理页新增排序选项（按时间、按标题字母）":
+    "管理ページに並べ替えオプションを追加（日付順・タイトル順）",
+  "管理页侧边栏新增标签筛选面板，支持组合筛选和标签管理（重命名/删除）":
+    "管理ページのサイドバーにタグフィルターパネルを追加。複合フィルターとタグ管理（名前変更・削除）に対応",
+  "管理页支持键盘快捷导航（j/k/Enter/e/x/d）":
+    "管理ページでキーボードナビゲーションに対応（j/k/Enter/e/x/d）",
+  "支持拖拽书签到侧边栏文件夹快速移动":
+    "ブックマークをサイドバーのフォルダーにドラッグ＆ドロップで移動",
+  "全新独立引导页面，配合加密原理动画":
+    "暗号化アニメーション付きの新しいオンボーディングページ",
+  "Popup 新用户快捷键提示（前 5 次显示，可关闭）":
+    "Popup で新規ユーザーにショートカットヒントを表示（最初の5回、非表示可能）",
+  "Popup 搜索结果分页加载，大量结果不再卡顿":
+    "Popup の検索結果をページ読み込みに変更し、大量の結果でもスムーズに動作",
   "新增日语界面与浏览器语言自动识别":
     "日本語UIとブラウザー言語の自動判定を追加",
   "语言选择器改用固定语言名称，避免随当前界面语言变化":

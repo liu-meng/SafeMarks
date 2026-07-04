@@ -1,4 +1,4 @@
-import { getBookmarkSearchResults } from "../core/bookmark-search.js";
+import { getBookmarkSearchResults, getFreeTextQuery } from "../core/bookmark-search.js";
 import {
   removeFolderTreeFromBookmarks,
   renameFolderTreeInBookmarks,
@@ -27,7 +27,15 @@ import {
 import { findInternalDuplicates } from "../core/dedup.js";
 import { formatDateTime, initializeI18n, localizeDocument, t } from "../shared/i18n.js";
 import { createTagChipsInput, createTagList } from "../shared/tag-chips.js";
+import {
+  getTagCounts,
+  renameTagInBookmarks,
+  mergeTagsInBookmarks,
+  deleteTagFromBookmarks
+} from "../core/tags.js";
 import { confirmDialog, showMessage } from "../shared/ui.js";
+import { highlightText } from "../shared/highlight.js";
+import { createSearchHistoryDropdown } from "../shared/search-history-dropdown.js";
 
 try {
   await initializeI18n();
@@ -54,6 +62,9 @@ const elements = {
   message: document.querySelector("#manager-message"),
   bookmarkCount: document.querySelector("#bookmark-count"),
   findDuplicates: document.querySelector("#find-duplicates"),
+  sortSelect: document.querySelector("#sort-select"),
+  tagNavList: document.querySelector("#tag-nav-list"),
+  tagNavEmpty: document.querySelector("#tag-nav-empty"),
   managerListTitle: document.querySelector("#manager-list-title"),
   managerStatus: document.querySelector("#manager-status"),
   searchInput: document.querySelector("#search-input"),
@@ -90,7 +101,10 @@ const state = {
   encodedKey: "",
   bookmarks: [],
   query: "",
+  sortBy: "createdAt-desc",
   activeFolderPath: null,
+  activeTagFilters: [],
+  focusedRowIndex: -1,
   editingBookmarkId: null,
   selectedBookmarkIds: new Set(),
   visibleBookmarkIds: [],
@@ -501,6 +515,29 @@ function createSidebarFolderButton({
   meta.textContent = String(count);
 
   button.append(title, meta);
+
+  // Drop target for drag-and-drop bookmark moving
+  button.addEventListener("dragover", (event) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+    button.classList.add("is-drop-target");
+  });
+  button.addEventListener("dragleave", () => {
+    button.classList.remove("is-drop-target");
+  });
+  button.addEventListener("drop", (event) => {
+    event.preventDefault();
+    button.classList.remove("is-drop-target");
+    const data = event.dataTransfer.getData("application/x-safemark-ids");
+    if (!data) {
+      return;
+    }
+    const ids = JSON.parse(data);
+    handleDropToFolder(ids, folderPath).catch((error) => {
+      setMessage(error instanceof Error ? error.message : String(error), "error");
+    });
+  });
+
   row.append(button);
 
   if (deletable) {
@@ -645,7 +682,131 @@ function renderSidebar(unlocked) {
     elements.folderTreeEmpty.hidden = false;
   }
 
+  renderTagNav(unlocked);
   return tree;
+}
+
+function renderTagNav(unlocked) {
+  elements.tagNavList.replaceChildren();
+  elements.tagNavEmpty.hidden = true;
+
+  if (!unlocked) {
+    elements.tagNavEmpty.textContent = state.hasVault
+      ? t("解锁后显示标签")
+      : t("创建保险库后显示标签");
+    elements.tagNavEmpty.hidden = false;
+    return;
+  }
+
+  const tagCounts = getTagCounts(state.bookmarks);
+
+  if (tagCounts.size === 0) {
+    elements.tagNavEmpty.textContent = t("还没有标签");
+    elements.tagNavEmpty.hidden = false;
+    return;
+  }
+
+  for (const [tag, count] of tagCounts) {
+    const item = document.createElement("li");
+    item.className = "manager-tag-item";
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "manager-tag-button";
+    if (state.activeTagFilters.includes(tag)) {
+      button.classList.add("is-active");
+    }
+    button.addEventListener("click", () => handleTagFilterClick(tag));
+
+    const label = document.createElement("span");
+    label.className = "manager-tag-label";
+    label.textContent = tag;
+
+    const badge = document.createElement("span");
+    badge.className = "manager-tag-count";
+    badge.textContent = String(count);
+
+    button.append(label, badge);
+
+    // Context menu for tag management
+    button.addEventListener("contextmenu", (event) => {
+      event.preventDefault();
+      showTagContextMenu(event, tag);
+    });
+
+    item.append(button);
+    elements.tagNavList.append(item);
+  }
+}
+
+function handleTagFilterClick(tag) {
+  const index = state.activeTagFilters.indexOf(tag);
+  if (index === -1) {
+    state.activeTagFilters.push(tag);
+  } else {
+    state.activeTagFilters.splice(index, 1);
+  }
+  renderView();
+}
+
+function showTagContextMenu(event, tag) {
+  // Remove existing menu if any
+  const existing = document.querySelector(".tag-context-menu");
+  if (existing) {
+    existing.remove();
+  }
+
+  const menu = document.createElement("div");
+  menu.className = "tag-context-menu";
+  menu.style.left = `${event.clientX}px`;
+  menu.style.top = `${event.clientY}px`;
+
+  const renameBtn = document.createElement("button");
+  renameBtn.type = "button";
+  renameBtn.textContent = t("重命名");
+  renameBtn.addEventListener("click", () => {
+    menu.remove();
+    handleRenameTag(tag);
+  });
+
+  const deleteBtn = document.createElement("button");
+  deleteBtn.type = "button";
+  deleteBtn.textContent = t("删除标签");
+  deleteBtn.addEventListener("click", () => {
+    menu.remove();
+    handleDeleteTag(tag);
+  });
+
+  menu.append(renameBtn, deleteBtn);
+  document.body.append(menu);
+
+  const closeMenu = (e) => {
+    if (!menu.contains(e.target)) {
+      menu.remove();
+      document.removeEventListener("click", closeMenu);
+    }
+  };
+  setTimeout(() => document.addEventListener("click", closeMenu), 0);
+}
+
+async function handleRenameTag(oldTag) {
+  const newTag = prompt(t("输入新标签名："), oldTag);
+  if (!newTag || newTag.trim() === oldTag) {
+    return;
+  }
+
+  const nextBookmarks = renameTagInBookmarks(state.bookmarks, oldTag, newTag.trim());
+  await persistBookmarks(nextBookmarks, t("标签已重命名。"));
+}
+
+async function handleDeleteTag(tag) {
+  const confirmed = await confirmDialog(t("确定删除标签「{tag}」？将从所有书签中移除。", { tag }));
+  if (!confirmed) {
+    return;
+  }
+
+  const nextBookmarks = deleteTagFromBookmarks(state.bookmarks, tag);
+  await persistBookmarks(nextBookmarks, t("标签已删除。"));
 }
 
 function createManagerRow(bookmark) {
@@ -754,6 +915,18 @@ function createManagerRow(bookmark) {
   }
 
   item.classList.add("manager-row");
+  item.draggable = true;
+  item.addEventListener("dragstart", (event) => {
+    const ids = state.selectedBookmarkIds.has(bookmark.id)
+      ? [...state.selectedBookmarkIds]
+      : [bookmark.id];
+    event.dataTransfer.setData("application/x-safemark-ids", JSON.stringify(ids));
+    event.dataTransfer.effectAllowed = "move";
+    item.classList.add("is-dragging");
+  });
+  item.addEventListener("dragend", () => {
+    item.classList.remove("is-dragging");
+  });
 
   const selectCell = document.createElement("label");
   selectCell.className = "manager-row-select";
@@ -790,8 +963,13 @@ function createManagerRow(bookmark) {
   titleLink.href = bookmark.url;
   titleLink.target = "_blank";
   titleLink.rel = "noreferrer";
-  titleLink.textContent = bookmark.title;
   titleLink.title = bookmark.title;
+  const managerFreeText = getFreeTextQuery(state.query || "");
+  if (managerFreeText) {
+    titleLink.appendChild(highlightText(bookmark.title, managerFreeText));
+  } else {
+    titleLink.textContent = bookmark.title;
+  }
 
   const urlLine = document.createElement("p");
   urlLine.className = "manager-row-url";
@@ -839,15 +1017,25 @@ function createManagerRow(bookmark) {
 function renderView() {
   const unlocked = state.hasVault && state.sessionState === "unlocked";
   const searchResults = unlocked
-    ? getBookmarkSearchResults(state.bookmarks, state.query)
+    ? getBookmarkSearchResults(state.bookmarks, state.query, state.sortBy)
     : [];
   renderSidebar(unlocked);
-  const filteredBookmarks = searchResults.filter((bookmark) =>
-    folderContainsBookmark(state.activeFolderPath, bookmark)
-  );
+  const filteredBookmarks = searchResults.filter((bookmark) => {
+    if (!folderContainsBookmark(state.activeFolderPath, bookmark)) {
+      return false;
+    }
+    if (state.activeTagFilters.length > 0) {
+      const bookmarkTags = (bookmark.tags || []).map((t) => t.toLowerCase());
+      if (!state.activeTagFilters.every((f) => bookmarkTags.includes(f))) {
+        return false;
+      }
+    }
+    return true;
+  });
   const activeFolderLabel = getFolderLabel(state.activeFolderPath);
 
   elements.searchInput.disabled = !unlocked;
+  elements.sortSelect.disabled = !unlocked;
   elements.findDuplicates.hidden = !unlocked;
   elements.searchInput.value = state.query;
   elements.bookmarkList.replaceChildren();
@@ -983,6 +1171,16 @@ async function persistBookmarks(nextBookmarks, successMessage) {
   state.editingBookmarkId = null;
   pruneSelection();
   await refreshView(successMessage);
+}
+
+async function handleDropToFolder(bookmarkIds, targetFolderPath) {
+  const nextBookmarks = moveBookmarksToFolder(state.bookmarks, bookmarkIds, targetFolderPath);
+  const count = bookmarkIds.length;
+  const message = t("已移动 {count} 条收藏到「{folder}」。", {
+    count,
+    folder: targetFolderPath || t("未分类")
+  });
+  await persistBookmarks(nextBookmarks, message);
 }
 
 async function handleStartEdit(bookmarkId) {
@@ -1333,9 +1531,21 @@ async function handleUnlockSubmit(event) {
   }
 }
 
+const managerSearchHistoryDropdown = createSearchHistoryDropdown({
+  input: elements.searchInput,
+  onSelect(query) {
+    elements.searchInput.value = query;
+    state.query = query;
+    renderView();
+  }
+});
+
 function handleSearchInput() {
   state.query = elements.searchInput.value;
   renderView();
+  if (state.query.trim()) {
+    managerSearchHistoryDropdown.hide();
+  }
 
   if (state.sessionState !== "unlocked") {
     return;
@@ -1356,6 +1566,15 @@ function handleSearchInput() {
     .catch(() => {});
 }
 
+elements.searchInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    const query = elements.searchInput.value.trim();
+    if (query) {
+      managerSearchHistoryDropdown.recordQuery(query).catch(() => {});
+    }
+  }
+});
+
 elements.openSettings.addEventListener("click", () => chrome.runtime.openOptionsPage());
 elements.sidebarSettings.addEventListener("click", () => chrome.runtime.openOptionsPage());
 elements.allBookmarksNav.addEventListener("click", () => {
@@ -1372,6 +1591,10 @@ elements.lockSession.addEventListener("click", async () => {
 });
 elements.unlockForm.addEventListener("submit", handleUnlockSubmit);
 elements.searchInput.addEventListener("input", handleSearchInput);
+elements.sortSelect.addEventListener("change", () => {
+  state.sortBy = elements.sortSelect.value;
+  renderView();
+});
 document.addEventListener("click", (event) => {
   if (!state.openFolderMenuPath) {
     return;
@@ -1419,6 +1642,141 @@ window.addEventListener("focus", () => {
   refreshView().catch((error) => {
     setMessage(error instanceof Error ? error.message : String(error), "error");
   });
+});
+
+// Keyboard navigation
+function isInputFocused() {
+  const active = document.activeElement;
+  if (!active) {
+    return false;
+  }
+  const tag = active.tagName.toLowerCase();
+  return tag === "input" || tag === "textarea" || tag === "select" || active.isContentEditable;
+}
+
+function getVisibleRows() {
+  return [...elements.bookmarkList.querySelectorAll(".bookmark-item")];
+}
+
+function updateFocusedRow() {
+  const rows = getVisibleRows();
+  for (const row of rows) {
+    row.classList.remove("is-focused");
+  }
+  if (state.focusedRowIndex >= 0 && state.focusedRowIndex < rows.length) {
+    rows[state.focusedRowIndex].classList.add("is-focused");
+    rows[state.focusedRowIndex].scrollIntoView({ block: "nearest" });
+  }
+}
+
+function getFocusedBookmarkId() {
+  if (state.focusedRowIndex < 0 || state.focusedRowIndex >= state.visibleBookmarkIds.length) {
+    return null;
+  }
+  return state.visibleBookmarkIds[state.focusedRowIndex];
+}
+
+document.addEventListener("keydown", (event) => {
+  if (state.sessionState !== "unlocked") {
+    return;
+  }
+
+  // "/" focuses search regardless of input state
+  if (event.key === "/" && !isInputFocused()) {
+    event.preventDefault();
+    elements.searchInput.focus();
+    elements.searchInput.select();
+    return;
+  }
+
+  // Escape clears focus or closes edit
+  if (event.key === "Escape") {
+    if (isInputFocused()) {
+      document.activeElement.blur();
+      return;
+    }
+    if (state.editingBookmarkId) {
+      state.editingBookmarkId = null;
+      renderView();
+      return;
+    }
+    state.focusedRowIndex = -1;
+    updateFocusedRow();
+    return;
+  }
+
+  // Single-key shortcuts disabled when typing
+  if (isInputFocused()) {
+    return;
+  }
+
+  const rows = getVisibleRows();
+  const maxIndex = rows.length - 1;
+
+  switch (event.key) {
+    case "j":
+    case "ArrowDown":
+      event.preventDefault();
+      state.focusedRowIndex = Math.min(state.focusedRowIndex + 1, maxIndex);
+      updateFocusedRow();
+      break;
+
+    case "k":
+    case "ArrowUp":
+      event.preventDefault();
+      state.focusedRowIndex = Math.max(state.focusedRowIndex - 1, 0);
+      updateFocusedRow();
+      break;
+
+    case "Enter": {
+      const id = getFocusedBookmarkId();
+      if (id) {
+        const bookmark = state.bookmarks.find((b) => b.id === id);
+        if (bookmark) {
+          window.open(bookmark.url, "_blank", "noreferrer");
+        }
+      }
+      break;
+    }
+
+    case "e": {
+      const editId = getFocusedBookmarkId();
+      if (editId) {
+        state.editingBookmarkId = editId;
+        renderView();
+      }
+      break;
+    }
+
+    case "x": {
+      const xId = getFocusedBookmarkId();
+      if (xId) {
+        if (state.selectedBookmarkIds.has(xId)) {
+          state.selectedBookmarkIds.delete(xId);
+        } else {
+          state.selectedBookmarkIds.add(xId);
+        }
+        renderView();
+      }
+      break;
+    }
+
+    case "d":
+    case "Delete": {
+      const delId = getFocusedBookmarkId();
+      if (delId) {
+        confirmDialog(t("确定删除这条收藏？")).then((confirmed) => {
+          if (confirmed) {
+            const nextBookmarks = state.bookmarks.filter((b) => b.id !== delId);
+            persistBookmarks(nextBookmarks, t("收藏已删除。")).catch((error) => {
+              setMessage(error instanceof Error ? error.message : String(error), "error");
+            });
+          }
+        });
+      }
+      break;
+    }
+  }
 });
 
 refreshView().catch((error) => {

@@ -33,6 +33,14 @@
           <ul id="folder-tree" class="manager-folder-tree"></ul>
         </section>
 
+        <section class="manager-tag-nav" aria-labelledby="tag-nav-title">
+          <div class="manager-sidebar-section-head">
+            <h2 id="tag-nav-title">标签</h2>
+          </div>
+          <div id="tag-nav-empty" class="manager-folder-empty">解锁后显示标签</div>
+          <ul id="tag-nav-list" class="manager-tag-list"></ul>
+        </section>
+
         <div class="manager-sidebar-spacer"></div>
 
         <button id="sidebar-settings" class="manager-nav-button manager-sidebar-bottom" type="button">
@@ -95,6 +103,12 @@
             </label>
             <div class="button-row">
               <p id="bookmark-count" class="badge">检查中...</p>
+              <select id="sort-select" class="sort-select" disabled>
+                <option value="createdAt-desc">最新优先</option>
+                <option value="createdAt-asc">最早优先</option>
+                <option value="title-asc">标题 A→Z</option>
+                <option value="title-desc">标题 Z→A</option>
+              </select>
               <button id="find-duplicates" class="button-secondary" type="button" hidden>查找重复收藏</button>
             </div>
           </div>

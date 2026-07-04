@@ -29,6 +29,7 @@ const COMMANDS = {
 
 const PAGE_URLS = {
   manager: chrome.runtime.getURL("src/manager/index.html"),
+  onboarding: chrome.runtime.getURL("src/onboarding/index.html"),
   optionsWelcome: chrome.runtime.getURL("src/options/index.html?flow=welcome"),
   quickCapture: chrome.runtime.getURL("src/quick-capture/index.html")
 };
@@ -268,7 +269,7 @@ chrome.runtime.onInstalled.addListener((details) => {
   setupContextMenus();
 
   if (details.reason === "install") {
-    chrome.tabs.create({ url: PAGE_URLS.optionsWelcome }).catch(() => {});
+    chrome.tabs.create({ url: PAGE_URLS.onboarding }).catch(() => {});
   }
 
   if (details.reason === "update") {

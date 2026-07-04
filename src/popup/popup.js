@@ -14,7 +14,7 @@ import {
   rememberRecentFolderPath
 } from "../core/recent-folders.js";
 import { sessionLock, sessionSet, sessionStatus, sessionTouch } from "../core/session.js";
-import { getBookmarkSearchResults } from "../core/bookmark-search.js";
+import { getBookmarkSearchResults, getFreeTextQuery } from "../core/bookmark-search.js";
 import { getCurrentPageCandidate, getPageFaviconUrl } from "../core/tabs.js";
 import {
   createBookmark,
@@ -35,6 +35,8 @@ import { createFolderPicker } from "../shared/folder-picker.js";
 import { createPasswordStrengthMeter } from "../shared/password-strength-meter.js";
 import { createTagChipsInput, createTagList } from "../shared/tag-chips.js";
 import { confirmDialog, showMessage } from "../shared/ui.js";
+import { highlightText } from "../shared/highlight.js";
+import { createSearchHistoryDropdown } from "../shared/search-history-dropdown.js";
 
 const MANAGER_PAGE_URL = chrome.runtime.getURL("src/manager/index.html");
 const CHANGELOG_PAGE_URL = chrome.runtime.getURL("src/changelog/index.html");
@@ -98,7 +100,10 @@ const elements = {
   emptyStateActions: document.querySelector("#empty-state-actions"),
   emptyStateImport: document.querySelector("#empty-state-import"),
   sessionBadge: document.querySelector("#session-badge"),
-  lockNow: document.querySelector("#lock-now")
+  lockNow: document.querySelector("#lock-now"),
+  shortcutHint: document.querySelector("#shortcut-hint"),
+  shortcutHintText: document.querySelector("#shortcut-hint-text"),
+  shortcutHintDismiss: document.querySelector("#shortcut-hint-dismiss")
 };
 
 const setupStrengthMeter = createPasswordStrengthMeter();
@@ -116,6 +121,7 @@ const state = {
   encodedKey: "",
   bookmarks: [],
   query: "",
+  searchResultLimit: null,
   pendingQuickCaptureCount: 0,
   returnWindowId: null,
   lockTimer: null,
@@ -498,7 +504,12 @@ function createBookmarkItem(bookmark) {
   titleLink.href = bookmark.url;
   titleLink.target = "_blank";
   titleLink.rel = "noreferrer";
-  titleLink.textContent = bookmark.title;
+  const freeText = getFreeTextQuery(state.query || "");
+  if (freeText) {
+    titleLink.appendChild(highlightText(bookmark.title, freeText));
+  } else {
+    titleLink.textContent = bookmark.title;
+  }
 
   const detailButton = document.createElement("button");
   detailButton.type = "button";
@@ -762,16 +773,26 @@ function resetUnlockedState() {
   resetCurrentPageSummary();
 }
 
+const SEARCH_RESULT_PAGE_SIZE = 50;
+
 function renderBookmarks() {
   const query = state.query.trim();
   const filtered = getBookmarkSearchResults(state.bookmarks, query);
-  const visibleBookmarks = query ? filtered : filtered.slice(0, RECENT_BOOKMARK_LIMIT);
+  const isSearch = Boolean(query);
+  const totalFiltered = filtered.length;
+
+  // Paginate: default view shows 5, search shows up to pageSize with "load more"
+  const limit = isSearch
+    ? Math.min(state.searchResultLimit || SEARCH_RESULT_PAGE_SIZE, totalFiltered)
+    : RECENT_BOOKMARK_LIMIT;
+  const visibleBookmarks = isSearch ? filtered.slice(0, limit) : filtered.slice(0, RECENT_BOOKMARK_LIMIT);
+  const hasMore = isSearch && limit < totalFiltered;
   const showImportAction = !query && state.bookmarks.length === 0;
 
-  elements.bookmarkListTitle.textContent = query ? t("搜索结果") : t("最近收藏");
-  elements.bookmarkCount.textContent = query
+  elements.bookmarkListTitle.textContent = isSearch ? t("搜索结果") : t("最近收藏");
+  elements.bookmarkCount.textContent = isSearch
     ? t("{visibleCount} / {totalCount} 条收藏", {
-        visibleCount: filtered.length,
+        visibleCount: totalFiltered,
         totalCount: state.bookmarks.length
       })
     : state.bookmarks.length > RECENT_BOOKMARK_LIMIT
@@ -781,7 +802,7 @@ function renderBookmarks() {
         })
       : t("{count} 条收藏", { count: state.bookmarks.length });
   elements.emptyState.hidden = visibleBookmarks.length > 0;
-  elements.emptyStateCopy.textContent = query
+  elements.emptyStateCopy.textContent = isSearch
     ? t("没有匹配的收藏。")
     : showImportAction
       ? t("还没有收藏，可先保存当前页，或去设置页导入浏览器书签。")
@@ -790,7 +811,7 @@ function renderBookmarks() {
   elements.bookmarkList.replaceChildren();
 
   if (visibleBookmarks.length === 0) {
-    if (!query) {
+    if (!isSearch) {
       state.collapsedFolders = new Set();
       state.knownFolderPaths = new Set();
     }
@@ -798,10 +819,22 @@ function renderBookmarks() {
   }
 
   const tree = buildBookmarkTree(visibleBookmarks);
-  if (!query) {
+  if (!isSearch) {
     syncCollapsedFolderState(tree);
   }
-  appendTreeContent(elements.bookmarkList, tree, Boolean(query));
+  appendTreeContent(elements.bookmarkList, tree, isSearch);
+
+  if (hasMore) {
+    const loadMore = document.createElement("button");
+    loadMore.type = "button";
+    loadMore.className = "load-more-button";
+    loadMore.textContent = t("加载更多（还有 {count} 条）", { count: totalFiltered - limit });
+    loadMore.addEventListener("click", () => {
+      state.searchResultLimit = (state.searchResultLimit || SEARCH_RESULT_PAGE_SIZE) + SEARCH_RESULT_PAGE_SIZE;
+      renderBookmarks();
+    });
+    elements.bookmarkList.append(loadMore);
+  }
 }
 
 async function persistBookmarks(nextBookmarks, successMessage) {
@@ -1204,11 +1237,47 @@ async function handleDeleteBookmark(bookmarkId) {
   await persistBookmarks(nextBookmarks, t("收藏已删除。"));
 }
 
+const searchHistoryDropdown = createSearchHistoryDropdown({
+  input: elements.searchInput,
+  onSelect(query) {
+    elements.searchInput.value = query;
+    state.query = query;
+    renderBookmarks();
+    touchSessionState().catch(() => {});
+  }
+});
+
+let searchDebounceTimer = null;
+const SEARCH_DEBOUNCE_MS = 150;
+
 function handleSearchInput() {
   state.query = elements.searchInput.value;
-  renderBookmarks();
-  touchSessionState().catch(() => {});
+  state.searchResultLimit = null;
+  if (state.query.trim()) {
+    searchHistoryDropdown.hide();
+  }
+
+  if (searchDebounceTimer) {
+    clearTimeout(searchDebounceTimer);
+  }
+  searchDebounceTimer = setTimeout(() => {
+    renderBookmarks();
+    touchSessionState().catch(() => {});
+  }, SEARCH_DEBOUNCE_MS);
 }
+
+function handleSearchCommit() {
+  const query = elements.searchInput.value.trim();
+  if (query) {
+    searchHistoryDropdown.recordQuery(query).catch(() => {});
+  }
+}
+
+elements.searchInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    handleSearchCommit();
+  }
+});
 
 async function handleManualLock() {
   await sessionLock();
@@ -1241,5 +1310,40 @@ window.addEventListener("focus", () => {
   }
 });
 
+// Shortcut hint — show for first 5 opens, dismissible
+const SHORTCUT_HINT_STORAGE_KEY = "shortcutHintState";
+const SHORTCUT_HINT_MAX_SHOWS = 5;
+
+async function initShortcutHint() {
+  try {
+    const result = await chrome.storage.local.get(SHORTCUT_HINT_STORAGE_KEY);
+    const hintState = result[SHORTCUT_HINT_STORAGE_KEY] || { count: 0, dismissed: false };
+
+    if (hintState.dismissed || hintState.count >= SHORTCUT_HINT_MAX_SHOWS) {
+      return;
+    }
+
+    hintState.count += 1;
+    await chrome.storage.local.set({ [SHORTCUT_HINT_STORAGE_KEY]: hintState });
+
+    elements.shortcutHintText.textContent = t("提示：可在浏览器扩展快捷键设置中自定义 SafeMarks 快捷键。");
+    elements.shortcutHint.hidden = false;
+  } catch {
+    // Silently ignore — hint is non-critical
+  }
+}
+
+elements.shortcutHintDismiss.addEventListener("click", async () => {
+  elements.shortcutHint.hidden = true;
+  try {
+    await chrome.storage.local.set({
+      [SHORTCUT_HINT_STORAGE_KEY]: { count: SHORTCUT_HINT_MAX_SHOWS, dismissed: true }
+    });
+  } catch {
+    // Ignore
+  }
+});
+
 initialize();
+initShortcutHint();
 checkChangelogBanner().catch(() => {});

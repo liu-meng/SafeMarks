@@ -1,0 +1,238 @@
+.onboarding-shell {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 40px 24px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.onboarding-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.onboarding-progress-bar {
+  height: 4px;
+  background: var(--line);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.onboarding-progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: width 400ms ease;
+}
+
+.onboarding-progress-label {
+  font-size: 12px;
+  color: var(--muted);
+  text-align: right;
+}
+
+.onboarding-step {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  animation: fadeIn 400ms ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.onboarding-illustration {
+  display: flex;
+  justify-content: center;
+  padding: 24px 0;
+}
+
+.onboarding-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.onboarding-content h1 {
+  font-size: 28px;
+  margin: 0;
+}
+
+.onboarding-content .eyebrow {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+}
+
+.onboarding-description {
+  font-size: 15px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.onboarding-content form {
+  margin-top: 8px;
+}
+
+.onboarding-tips {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 8px 0;
+}
+
+.tip-card {
+  padding: 12px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+
+.tip-card strong {
+  display: block;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+.tip-card p {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.error-text {
+  color: var(--warn);
+  font-size: 13px;
+}
+
+/* Crypto lock animation */
+.crypto-animation {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.crypto-lock {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.crypto-lock-body {
+  width: 48px;
+  height: 36px;
+  background: var(--accent);
+  border-radius: 6px;
+}
+
+.crypto-lock-shackle {
+  width: 28px;
+  height: 20px;
+  border: 4px solid var(--accent);
+  border-bottom: none;
+  border-radius: 14px 14px 0 0;
+  margin-bottom: -2px;
+  animation: shackleFloat 2s ease-in-out infinite;
+}
+
+@keyframes shackleFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+.crypto-particles span {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: var(--accent);
+  border-radius: 50%;
+  opacity: 0.4;
+  animation: particleOrbit 3s linear infinite;
+}
+
+.crypto-particles span:nth-child(1) { animation-delay: 0s; top: 10px; left: 20px; }
+.crypto-particles span:nth-child(2) { animation-delay: 0.75s; top: 20px; right: 20px; }
+.crypto-particles span:nth-child(3) { animation-delay: 1.5s; bottom: 10px; left: 30px; }
+.crypto-particles span:nth-child(4) { animation-delay: 2.25s; bottom: 20px; right: 30px; }
+
+@keyframes particleOrbit {
+  0% { transform: scale(0.5); opacity: 0; }
+  50% { transform: scale(1.2); opacity: 0.6; }
+  100% { transform: scale(0.5); opacity: 0; }
+}
+
+/* Import icon */
+.import-icon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.import-arrow {
+  width: 4px;
+  height: 24px;
+  background: var(--accent);
+  border-radius: 2px;
+  position: relative;
+  animation: arrowBounce 1.5s ease-in-out infinite;
+}
+
+.import-arrow::after {
+  content: "";
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 8px solid var(--accent);
+}
+
+@keyframes arrowBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(6px); }
+}
+
+.import-box {
+  width: 48px;
+  height: 32px;
+  border: 3px solid var(--accent);
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+}
+
+/* Complete check */
+.complete-check {
+  width: 64px;
+  height: 64px;
+  background: var(--success-soft);
+  color: var(--success);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  font-weight: bold;
+  animation: checkPop 400ms ease;
+}
+
+@keyframes checkPop {
+  0% { transform: scale(0); }
+  60% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
