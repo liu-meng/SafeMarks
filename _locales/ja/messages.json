@@ -3,7 +3,7 @@
     "message": "SafeMarks"
   },
   "extensionDescription": {
-    "message": "ローカル暗号化ブックマークボルト。アカウントもクラウド同期も不要です。"
+    "message": "暗号化ブックマークボルト。任意の暗号化クラウド同期に対応し、アカウントは不要です。"
   },
   "commandQuickCaptureDescription": {
     "message": "クイック保存を開く（既存フォルダーを選択、または新規作成）"

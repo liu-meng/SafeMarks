@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 
 import { base64ToBytes, bytesToBase64 } from "../src/core/base64.js";
 import {
+  createAesGcmParams,
   deriveKeyFromPassword,
   encryptJson,
   encryptString,
@@ -82,6 +83,11 @@ import {
   t
 } from "../src/shared/i18n.js";
 import { CHANGELOG } from "../src/shared/changelog.js";
+import {
+  CONTEXT_MENU_ITEMS,
+  createContextMenuRegistrar
+} from "../src/background/context-menu-registry.js";
+import { requestBrowserBookmarkTree } from "../src/shared/browser-bookmark-access.js";
 
 test("base64 helpers round-trip bytes", () => {
   const source = new Uint8Array([0, 1, 2, 253, 254, 255]);
@@ -89,6 +95,108 @@ test("base64 helpers round-trip bytes", () => {
   const decoded = base64ToBytes(encoded);
 
   assert.deepEqual([...decoded], [...source]);
+});
+
+test("AES-GCM params omit undefined additional data for browser compatibility", () => {
+  const iv = new Uint8Array(12);
+  const withoutAdditionalData = createAesGcmParams(iv);
+  const withAdditionalData = createAesGcmParams(iv, "vault:revision");
+
+  assert.equal("additionalData" in withoutAdditionalData, false);
+  assert.ok(withAdditionalData.additionalData instanceof Uint8Array);
+  assert.equal(new TextDecoder().decode(withAdditionalData.additionalData), "vault:revision");
+});
+
+test("onboarding uses the SafeMarks product icon", () => {
+  const html = readFileSync(new URL("../src/onboarding/index.html", import.meta.url), "utf8");
+
+  assert.match(html, /src="\.\.\/\.\.\/assets\/icons\/safemarks-icon\.svg"/);
+  assert.match(html, /class="onboarding-product-icon"/);
+  assert.doesNotMatch(html, /class="crypto-lock"/);
+});
+
+test("browser bookmark import requests optional permission before reading", async () => {
+  const calls = [];
+  const chromeApi = {
+    permissions: {
+      async request(request) {
+        calls.push(["permission", request]);
+        chromeApi.bookmarks = {
+          async getTree() {
+            calls.push(["bookmarks"]);
+            return [{ id: "root", children: [] }];
+          }
+        };
+        return true;
+      }
+    }
+  };
+
+  const result = await requestBrowserBookmarkTree(chromeApi);
+
+  assert.equal(result.granted, true);
+  assert.deepEqual(result.tree, [{ id: "root", children: [] }]);
+  assert.deepEqual(calls, [
+    ["permission", { permissions: ["bookmarks"] }],
+    ["bookmarks"]
+  ]);
+});
+
+test("browser bookmark import stops cleanly when permission is denied", async () => {
+  const result = await requestBrowserBookmarkTree({
+    permissions: {
+      async request() {
+        return false;
+      }
+    }
+  });
+
+  assert.deepEqual(result, { granted: false, tree: [] });
+});
+
+test("context menu registration coalesces concurrent initialization", async () => {
+  const menus = new Map();
+  let removeAllCalls = 0;
+  let createCalls = 0;
+  let lastError = null;
+  const contextMenus = {
+    removeAll(callback) {
+      removeAllCalls += 1;
+      setTimeout(() => {
+        menus.clear();
+        callback();
+      }, 0);
+    },
+    create(item, callback) {
+      createCalls += 1;
+      setTimeout(() => {
+        if (menus.has(item.id)) {
+          lastError = { message: `Cannot create item with duplicate id ${item.id}` };
+        } else {
+          menus.set(item.id, item);
+        }
+        callback();
+        lastError = null;
+      }, 0);
+      return item.id;
+    }
+  };
+  const register = createContextMenuRegistrar({
+    contextMenus,
+    getLastError: () => lastError,
+    translate: (value) => `translated:${value}`
+  });
+
+  await Promise.all([register(), register(), register()]);
+
+  assert.equal(removeAllCalls, 1);
+  assert.equal(createCalls, CONTEXT_MENU_ITEMS.length);
+  assert.deepEqual([...menus.keys()], CONTEXT_MENU_ITEMS.map((item) => item.id));
+  assert.ok([...menus.values()].every((item) => item.title.startsWith("translated:")));
+
+  await register();
+  assert.equal(removeAllCalls, 2);
+  assert.equal(createCalls, CONTEXT_MENU_ITEMS.length * 2);
 });
 
 test("options page exposes script-required shortcut controls", () => {
@@ -334,6 +442,40 @@ test("every changelog entry has a Japanese translation", async () => {
     for (const change of release.changes) {
       assert.notEqual(t(change), change, `Missing Japanese changelog translation: ${change}`);
     }
+  }
+});
+
+test("release version matches package metadata and follows the previous changelog version", () => {
+  const manifest = JSON.parse(readFileSync(new URL("../manifest.json", import.meta.url), "utf8"));
+  const packageMetadata = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
+  const [latest, previous] = CHANGELOG;
+  const parseVersion = (version) => version.split(".").map(Number);
+  const [latestMajor, latestMinor, latestPatch] = parseVersion(latest.version);
+  const [previousMajor, previousMinor, previousPatch] = parseVersion(previous.version);
+  const isNextPatch = latestMajor === previousMajor
+    && latestMinor === previousMinor
+    && latestPatch === previousPatch + 1;
+  const isNextMinor = latestMajor === previousMajor
+    && latestMinor === previousMinor + 1
+    && latestPatch === 0;
+
+  assert.equal(manifest.version, latest.version);
+  assert.equal(packageMetadata.version, latest.version);
+  assert.ok(isNextPatch || isNextMinor, `${latest.version} does not follow ${previous.version}`);
+});
+
+test("packaged locale descriptions reflect optional encrypted cloud sync", () => {
+  const localePaths = ["en", "zh_CN", "ja"];
+
+  for (const locale of localePaths) {
+    const messages = JSON.parse(readFileSync(
+      new URL(`../_locales/${locale}/messages.json`, import.meta.url),
+      "utf8"
+    ));
+    const description = messages.extensionDescription?.message ?? "";
+
+    assert.match(description, /cloud sync|云同步|クラウド同期/i, `${locale} description omits cloud sync`);
+    assert.doesNotMatch(description, /No account or cloud sync|无云同步|クラウド同期も不要/i);
   }
 });
 

@@ -73,14 +73,22 @@ function normalizeAdditionalData(additionalData) {
     : additionalData;
 }
 
+export function createAesGcmParams(iv, additionalData) {
+  const params = {
+    name: "AES-GCM",
+    iv
+  };
+  const normalizedAdditionalData = normalizeAdditionalData(additionalData);
+  if (normalizedAdditionalData !== undefined) {
+    params.additionalData = normalizedAdditionalData;
+  }
+  return params;
+}
+
 async function encryptBytes(bytes, key, additionalData) {
   const iv = randomBytes(12);
   const ciphertext = await requireCrypto().subtle.encrypt(
-    {
-      name: "AES-GCM",
-      iv,
-      additionalData: normalizeAdditionalData(additionalData)
-    },
+    createAesGcmParams(iv, additionalData),
     key,
     bytes
   );
@@ -93,11 +101,7 @@ async function encryptBytes(bytes, key, additionalData) {
 
 async function decryptBytes(blob, key, additionalData) {
   const plaintext = await requireCrypto().subtle.decrypt(
-    {
-      name: "AES-GCM",
-      iv: base64ToBytes(blob.iv),
-      additionalData: normalizeAdditionalData(additionalData)
-    },
+    createAesGcmParams(base64ToBytes(blob.iv), additionalData),
     key,
     base64ToBytes(blob.ciphertext)
   );

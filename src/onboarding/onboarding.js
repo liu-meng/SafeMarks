@@ -2,6 +2,10 @@ import { createVaultRecord, encryptBookmarksWithEncodedKey } from "../core/vault
 import { saveVaultRecord } from "../core/storage.js";
 import { sessionSet } from "../core/session.js";
 import { initializeI18n, localizeDocument, t } from "../shared/i18n.js";
+import {
+  BOOKMARK_ACCESS_ERROR_CODES,
+  requestBrowserBookmarkTree
+} from "../shared/browser-bookmark-access.js";
 
 try {
   await initializeI18n();
@@ -76,9 +80,18 @@ elements.setupForm.addEventListener("submit", async (event) => {
 
 // Step 2: Import browser bookmarks
 elements.importBrowser.addEventListener("click", async () => {
+  elements.importBrowser.disabled = true;
+  elements.importStatus.hidden = true;
+
   try {
-    const chromeBookmarks = await chrome.bookmarks.getTree();
-    bookmarks = flattenChromeBookmarks(chromeBookmarks);
+    const access = await requestBrowserBookmarkTree();
+    if (!access.granted) {
+      elements.importStatus.textContent = t("未授予浏览器收藏读取权限，导入已取消。");
+      elements.importStatus.hidden = false;
+      return;
+    }
+
+    bookmarks = flattenChromeBookmarks(access.tree);
     elements.importStatus.textContent = t("已导入 {count} 条书签。", { count: bookmarks.length });
     elements.importStatus.hidden = false;
 
@@ -90,8 +103,17 @@ elements.importBrowser.addEventListener("click", async () => {
 
     setTimeout(() => showStep(3), 800);
   } catch (error) {
-    elements.importStatus.textContent = t("导入失败：") + (error instanceof Error ? error.message : String(error));
+    const detail = error?.code === BOOKMARK_ACCESS_ERROR_CODES.PERMISSION_API_UNAVAILABLE
+      ? t("当前环境不支持权限申请。")
+      : error?.code === BOOKMARK_ACCESS_ERROR_CODES.BOOKMARKS_API_UNAVAILABLE
+        ? t("当前环境不支持读取原生收藏夹。")
+        : error instanceof Error
+          ? error.message
+          : String(error);
+    elements.importStatus.textContent = t("导入失败：") + detail;
     elements.importStatus.hidden = false;
+  } finally {
+    elements.importBrowser.disabled = false;
   }
 });
 

@@ -3,7 +3,7 @@
     "message": "SafeMarks"
   },
   "extensionDescription": {
-    "message": "Local encrypted bookmark vault. No account or cloud sync."
+    "message": "Encrypted bookmark vault with optional encrypted cloud sync. No account required."
   },
   "commandQuickCaptureDescription": {
     "message": "Open quick capture (choose an existing folder or create a new one)"

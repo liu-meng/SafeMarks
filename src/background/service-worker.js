@@ -29,6 +29,7 @@ import {
   markFolderSyncDirty,
   syncLocalFolderNow
 } from "../core/sync-coordinator.js";
+import { createContextMenuRegistrar } from "./context-menu-registry.js";
 
 const COMMANDS = {
   QUICK_CAPTURE: "quick-capture",
@@ -55,6 +56,11 @@ const ACTION_STATUS = {
 };
 
 let i18nInitializationPromise = null;
+const registerContextMenus = createContextMenuRegistrar({
+  contextMenus: chrome.contextMenus,
+  getLastError: () => chrome.runtime.lastError,
+  translate: t
+});
 
 function ensureI18n() {
   if (!i18nInitializationPromise) {
@@ -308,7 +314,9 @@ chrome.commands.onCommand.addListener(async (command) => {
 
 chrome.runtime.onInstalled.addListener((details) => {
   refreshActionBadge().catch(() => {});
-  setupContextMenus();
+  setupContextMenus().catch((error) => {
+    console.warn("SafeMarks context menu setup failed:", error);
+  });
   ensurePeriodicSyncAlarm().catch(() => {});
 
   if (details.reason === "install") {
@@ -322,7 +330,9 @@ chrome.runtime.onInstalled.addListener((details) => {
 
 chrome.runtime.onStartup.addListener(() => {
   refreshActionBadge().catch(() => {});
-  setupContextMenus();
+  setupContextMenus().catch((error) => {
+    console.warn("SafeMarks context menu setup failed:", error);
+  });
   ensurePeriodicSyncAlarm().catch(() => {});
 });
 
@@ -345,18 +355,7 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
 
 async function setupContextMenus() {
   await ensureI18n();
-  chrome.contextMenus.removeAll(() => {
-    chrome.contextMenus.create({
-      id: "safemarks-save-page",
-      title: t("保存到 SafeMarks"),
-      contexts: ["page", "link"]
-    });
-    chrome.contextMenus.create({
-      id: "safemarks-save-selection",
-      title: t("保存到 SafeMarks（含选中文本）"),
-      contexts: ["selection"]
-    });
-  });
+  await registerContextMenus();
 }
 
 async function handleContextMenuClick(info, tab) {

@@ -405,6 +405,8 @@ const EN_TRANSLATIONS = Object.freeze({
   "当前环境不支持读取原生收藏夹。": "Reading native bookmarks is not supported in this environment.",
   "未授予浏览器收藏读取权限，导入已取消。":
     "Browser bookmark access was not granted. Import canceled.",
+  "已导入 {count} 条书签。": "Imported {count} bookmarks.",
+  "导入失败：": "Import failed: ",
   "没有可导入的网页收藏，已跳过 {count} 条不支持的项目。":
     "No importable web bookmarks were found. Skipped {count} unsupported items.",
   "浏览器收藏夹中没有可导入的网页收藏。":
@@ -667,14 +669,12 @@ const EN_TRANSLATIONS = Object.freeze({
   "使用新主密码恢复云端版本": "Restore Remote Version with the New Master Password",
   "另一台设备修改了主密码。恢复前会先下载当前本地加密备份，再用新主密码载入云端版本。":
     "Another device changed the master password. SafeMarks downloads the current local encrypted backup before loading the remote version with the new password.",
-  "新增 macOS iCloud Drive 与本地云盘同步文件夹":
-    "Added macOS iCloud Drive and local cloud-drive sync folders",
-  "同步修订保持端到端加密，云盘服务商无法读取书签内容":
-    "Kept sync revisions end-to-end encrypted so cloud providers cannot read bookmark contents",
-  "新增保险库 V2、删除墓碑与多端三方合并":
-    "Added Vault V2, deletion tombstones, and three-way multi-device merging",
-  "支持从同步文件夹恢复保险库，并在并发编辑时保留冲突副本":
-    "Added vault restore from sync folders and conflict copies for concurrent edits"
+  "新增加密云同步，多台电脑上的收藏自动保持一致":
+    "Added encrypted cloud sync to keep bookmarks consistent across computers",
+  "支持 iCloud Drive、OneDrive、Dropbox 等同步文件夹，无需 SafeMarks 账号":
+    "Works with iCloud Drive, OneDrive, Dropbox, and other sync folders—no SafeMarks account required",
+  "自动合并多设备修改并支持换机恢复，避免收藏丢失或被覆盖":
+    "Automatically merges changes and supports recovery on a new computer to prevent loss or overwrites"
 });
 
 const JA_TRANSLATIONS = Object.freeze({
@@ -775,14 +775,18 @@ const JA_TRANSLATIONS = Object.freeze({
   "设置页重构为双栏网格布局": "設定ページを2カラムのグリッドレイアウトに再構成",
   "新增关闭浏览器时自动锁定选项": "ブラウザー終了時に自動ロックするオプションを追加",
   "新增修改主密码功能": "マスターパスワード変更機能を追加",
-  "新增 macOS iCloud Drive 与本地云盘同步文件夹":
-    "macOS iCloud Drive とローカルクラウドドライブの同期フォルダーを追加",
-  "同步修订保持端到端加密，云盘服务商无法读取书签内容":
-    "同期リビジョンをエンドツーエンド暗号化し、クラウド事業者がブックマーク内容を読めないように改善",
-  "新增保险库 V2、删除墓碑与多端三方合并":
-    "Vault V2、削除トゥームストーン、複数端末の3方向マージを追加",
-  "支持从同步文件夹恢复保险库，并在并发编辑时保留冲突副本":
-    "同期フォルダーからの復元と同時編集時の競合コピー保持に対応"
+  "新增加密云同步，多台电脑上的收藏自动保持一致":
+    "暗号化クラウド同期を追加し、複数のパソコンでブックマークを自動的に同期",
+  "支持 iCloud Drive、OneDrive、Dropbox 等同步文件夹，无需 SafeMarks 账号":
+    "iCloud Drive、OneDrive、Dropbox などの同期フォルダーに対応。SafeMarks アカウントは不要",
+  "自动合并多设备修改并支持换机恢复，避免收藏丢失或被覆盖":
+    "複数端末の変更を自動統合し、新しいパソコンへの復元にも対応。紛失や上書きを防止",
+  "当前环境不支持权限申请。": "この環境では権限をリクエストできません。",
+  "当前环境不支持读取原生收藏夹。": "この環境ではブラウザーのブックマークを読み取れません。",
+  "未授予浏览器收藏读取权限，导入已取消。":
+    "ブラウザーのブックマークへのアクセスが許可されなかったため、インポートを中止しました。",
+  "已导入 {count} 条书签。": "{count} 件のブックマークをインポートしました。",
+  "导入失败：": "インポートに失敗しました："
 });
 
 const TRANSLATIONS_BY_LOCALE = Object.freeze({

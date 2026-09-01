@@ -2,7 +2,7 @@
 
 状态：macOS/iCloud Drive MVP 已实现；Google Drive、WebDAV 与高级历史管理待实现  
 目标版本：Phase 5.1  
-最后更新：2026-07-19
+最后更新：2026-09-01
 
 ## 当前实现范围（v1.2.0）
 
