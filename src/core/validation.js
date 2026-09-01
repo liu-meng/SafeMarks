@@ -1,6 +1,10 @@
 import {
   AUTO_LOCK_OPTIONS,
   DEFAULT_AUTO_LOCK_MINUTES,
+  KDF_HASH,
+  LEGACY_KDF_ITERATIONS,
+  LEGACY_VERSION,
+  SUPPORTED_VERSIONS,
   VERSION
 } from "./constants.js";
 import { normalizeBookmarkTags } from "./tags.js";
@@ -22,6 +26,17 @@ function assertString(value, message) {
 
 function normalizeOptionalString(value) {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function normalizePositiveInteger(value, fallback, label) {
+  const normalized = Number(value);
+  if (!Number.isInteger(normalized) || normalized <= 0) {
+    if (fallback !== undefined) {
+      return fallback;
+    }
+    throw new Error(`${label} is invalid.`);
+  }
+  return normalized;
 }
 
 export function normalizeFolderPath(value) {
@@ -85,11 +100,11 @@ export function normalizeVaultRecord(value) {
   assertObject(value, "Vault record is invalid.");
 
   const version = Number(value.version);
-  if (version !== VERSION) {
+  if (!SUPPORTED_VERSIONS.includes(version)) {
     throw new Error("Unsupported vault version.");
   }
 
-  return {
+  const normalized = {
     version,
     salt: assertString(value.salt, "Salt is invalid."),
     auth: normalizeEncryptedBlob(value.auth, "Auth blob"),
@@ -102,6 +117,23 @@ export function normalizeVaultRecord(value) {
       bookmarkCount: normalizeBookmarkCount(value.meta?.bookmarkCount)
     }
   };
+
+  if (version === VERSION) {
+    normalized.vaultId = assertString(value.vaultId, "Vault id is invalid.");
+    normalized.kdf = {
+      name: value.kdf?.name === "PBKDF2" ? "PBKDF2" : "PBKDF2",
+      hash: value.kdf?.hash === KDF_HASH ? KDF_HASH : KDF_HASH,
+      iterations: normalizePositiveInteger(value.kdf?.iterations, undefined, "KDF iterations")
+    };
+  } else if (version === LEGACY_VERSION) {
+    normalized.kdf = {
+      name: "PBKDF2",
+      hash: KDF_HASH,
+      iterations: LEGACY_KDF_ITERATIONS
+    };
+  }
+
+  return normalized;
 }
 
 export function isSupportedBookmarkUrl(rawUrl) {
@@ -143,6 +175,11 @@ export function normalizeBookmark(value) {
     throw new Error("Bookmark createdAt is invalid.");
   }
 
+  const rawUpdatedAt = Number(value.updatedAt);
+  const updatedAt = Number.isFinite(rawUpdatedAt) && rawUpdatedAt > 0
+    ? rawUpdatedAt
+    : createdAt;
+
   return {
     id,
     url: input.url,
@@ -150,7 +187,8 @@ export function normalizeBookmark(value) {
     note: input.note,
     folderPath: input.folderPath,
     tags: input.tags,
-    createdAt
+    createdAt,
+    updatedAt
   };
 }
 
@@ -160,6 +198,60 @@ export function normalizeBookmarkList(value) {
   }
 
   return value.map(normalizeBookmark);
+}
+
+export function normalizeTombstone(value) {
+  assertObject(value, "Bookmark tombstone is invalid.");
+  const deletedAt = Number(value.deletedAt);
+  if (!Number.isFinite(deletedAt) || deletedAt <= 0) {
+    throw new Error("Bookmark tombstone deletedAt is invalid.");
+  }
+
+  return {
+    id: assertString(value.id, "Bookmark tombstone id is invalid."),
+    deletedAt
+  };
+}
+
+export function normalizeTombstoneList(value) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const byId = new Map();
+  for (const item of value) {
+    const tombstone = normalizeTombstone(item);
+    const current = byId.get(tombstone.id);
+    if (!current || tombstone.deletedAt > current.deletedAt) {
+      byId.set(tombstone.id, tombstone);
+    }
+  }
+  return [...byId.values()];
+}
+
+export function normalizeVaultPayload(value) {
+  if (Array.isArray(value)) {
+    return {
+      schemaVersion: LEGACY_VERSION,
+      bookmarks: normalizeBookmarkList(value),
+      tombstones: []
+    };
+  }
+
+  assertObject(value, "Vault payload is invalid.");
+  if (Number(value.schemaVersion) !== VERSION) {
+    throw new Error("Unsupported vault payload version.");
+  }
+
+  const bookmarks = normalizeBookmarkList(value.bookmarks);
+  const bookmarkIds = new Set(bookmarks.map((bookmark) => bookmark.id));
+  return {
+    schemaVersion: VERSION,
+    bookmarks,
+    tombstones: normalizeTombstoneList(value.tombstones).filter(
+      (tombstone) => !bookmarkIds.has(tombstone.id)
+    )
+  };
 }
 
 export function normalizeSessionRecord(value) {

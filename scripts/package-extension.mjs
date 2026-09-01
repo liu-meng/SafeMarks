@@ -56,7 +56,7 @@ async function main() {
     });
   }
 
-  await runCommand("zip", ["-qr", zipFilename, packageBaseName], {
+  await runCommand("zip", ["-qr", zipFilename, packageBaseName, "-x", "*/.DS_Store"], {
     cwd: distDir
   });
 

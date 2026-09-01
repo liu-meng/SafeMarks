@@ -15,7 +15,7 @@
             <p id="welcome-eyebrow" class="eyebrow">首次开始</p>
             <h2 id="welcome-title">欢迎使用 SafeMarks</h2>
             <p id="welcome-description" class="subtitle">
-              先设置主密码，再把浏览器里已有的书签带进来；SafeMarks 不需要账号，也不提供云同步。
+              先设置主密码，再把浏览器里已有的书签带进来；核心功能无需账号，云同步完全可选。
             </p>
           </div>
           <p id="welcome-step-badge" class="badge welcome-step-badge">第 1 步 / 3</p>
@@ -102,7 +102,7 @@
         <div class="stack options-hero-copy">
           <p class="eyebrow">SafeMarks</p>
           <h1>保险库设置</h1>
-          <p class="subtitle">管理本地保险库的自动锁定、浏览器导入、备份恢复和数据重置；SafeMarks 不依赖账号或云同步。</p>
+          <p class="subtitle">管理本地保险库的自动锁定、浏览器导入、备份恢复和可选的端到端加密云同步。</p>
           <div class="button-row">
             <button id="open-manager" class="ghost-button" type="button">打开收藏管理</button>
           </div>
@@ -129,6 +129,53 @@
       </section>
 
       <p id="options-message" class="message message-info" hidden></p>
+
+      <section id="cloud-sync-panel" class="panel panel-pad stack cloud-sync-panel">
+        <div class="section-head">
+          <div class="stack panel-tight">
+            <p class="eyebrow">端到端加密</p>
+            <h2>iCloud Drive / 同步文件夹</h2>
+            <p class="helper-text">
+              选择 iCloud Drive 中的专用 SafeMarks 文件夹。扩展只写入密文修订，Apple 和其他云盘服务商无法读取书签内容。
+            </p>
+          </div>
+          <p id="cloud-sync-status" class="badge">未启用</p>
+        </div>
+        <div class="sync-summary">
+          <div>
+            <p class="status-label">同步目录</p>
+            <p id="cloud-sync-directory" class="helper-text">尚未选择</p>
+          </div>
+          <div>
+            <p class="status-label">最近同步</p>
+            <p id="cloud-sync-last-run" class="helper-text">暂无记录</p>
+          </div>
+        </div>
+        <div class="button-row">
+          <button id="cloud-sync-connect" class="button" type="button">选择同步文件夹</button>
+          <button id="cloud-sync-now" class="button-secondary" type="button" disabled>立即同步</button>
+          <button id="cloud-sync-reauthorize" class="button-secondary" type="button" hidden>重新授权</button>
+          <button id="cloud-sync-disconnect" class="ghost-button" type="button" hidden>断开连接</button>
+        </div>
+        <p id="cloud-sync-detail" class="helper-text">
+          建议新建并只授权 `iCloud Drive/SafeMarks`，不要选择整个 iCloud Drive。
+        </p>
+        <section id="cloud-sync-restore-panel" class="sync-restore-panel stack" hidden>
+          <strong id="cloud-sync-restore-title">从同步文件夹恢复</strong>
+          <p id="cloud-sync-restore-copy" class="helper-text">当前浏览器还没有保险库。输入原主密码，从所选文件夹恢复密文书签。</p>
+          <form id="cloud-sync-restore-form" class="sync-restore-form">
+            <input
+              id="cloud-sync-restore-password"
+              class="input"
+              type="password"
+              autocomplete="current-password"
+              placeholder="原主密码"
+              required
+            />
+            <button id="cloud-sync-restore-submit" class="button" type="submit">恢复并解锁</button>
+          </form>
+        </section>
+      </section>
 
       <section class="panel panel-pad import-hero">
         <div class="stack import-hero-copy">
@@ -273,7 +320,7 @@
           <div class="section-head">
             <div class="stack">
               <h2>备份与恢复</h2>
-              <p class="helper-text">SafeMarks 不提供云同步；跨设备请使用加密 JSON 备份手动迁移，明文导出仍需要当前会话已解锁。</p>
+              <p class="helper-text">加密 JSON 仍适合独立归档；可选云同步不会代替用户自行保留的恢复备份，明文导出仍需要当前会话已解锁。</p>
             </div>
           </div>
           <div class="button-row">
@@ -285,7 +332,7 @@
           <section id="backup-reminder" class="backup-reminder stack" hidden>
             <div class="stack panel-tight">
               <strong id="backup-reminder-title">建议导出加密备份</strong>
-              <p id="backup-reminder-copy" class="helper-text">SafeMarks 只保存本地密文。请定期导出加密 JSON，避免浏览器数据丢失后无法恢复。</p>
+              <p id="backup-reminder-copy" class="helper-text">请定期导出独立的加密 JSON；即使已启用云同步，也应保留可自行恢复的备份。</p>
             </div>
             <div class="button-row">
               <button id="backup-reminder-export" class="button" type="button">立即导出加密备份</button>

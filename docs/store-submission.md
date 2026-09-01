@@ -20,7 +20,7 @@ npm run package:extension
 执行后上传这个文件：
 
 ```text
-dist/safemarks-1.1.0.zip
+dist/safemarks-1.2.0.zip
 ```
 
 如果版本号变化，ZIP 文件名会随 `manifest.json` 中的 `version` 自动变化。
@@ -51,7 +51,7 @@ dist/safemarks-1.1.0.zip
 
 ### 4.2 Package
 
-- 上传文件：`dist/safemarks-1.1.0.zip`
+- 上传文件：`dist/safemarks-1.2.0.zip`
 - ZIP 内已有 `manifest.json`、`src/`、`assets/`、`_locales/`
 
 ### 4.3 Store Listing
@@ -70,13 +70,13 @@ dist/safemarks-1.1.0.zip
 建议英文长描述：
 
 ```text
-SafeMarks helps users save and manage personal browser bookmarks in a local encrypted vault. It lets the user lock the vault with a master password, save the current page, search bookmarks, organize them by folder, add notes, import browser bookmarks on demand, and export encrypted or plain JSON backups. Vault data stays on the user's device and no account, sync service, analytics service, or remote server is required for the core experience.
+SafeMarks helps users save and manage personal browser bookmarks in a local encrypted vault. It lets the user lock the vault with a master password, save the current page, search bookmarks, organize them by folder, add notes, import browser bookmarks on demand, export backups, and optionally synchronize end-to-end encrypted revisions through a user-selected folder such as iCloud Drive. No SafeMarks account or SafeMarks data server is required.
 ```
 
 建议中文长描述：
 
 ```text
-SafeMarks 用于把浏览器收藏保存在本地加密保险库中。用户可以使用主密码锁定和解锁保险库，保存当前页面，按目录管理收藏，添加备注，按需导入浏览器原生收藏，并导出加密或明文 JSON 备份。核心能力完全在本地运行，不依赖账号体系、云同步、分析服务或远程服务器。
+SafeMarks 用于把浏览器收藏保存在本地加密保险库中。用户可以使用主密码锁定和解锁保险库、保存和整理收藏、导入浏览器书签、导出备份，并可选择通过 iCloud Drive 等用户授权目录同步端到端加密修订。核心能力不需要 SafeMarks 账号或 SafeMarks 数据服务器。
 ```
 
 ### 4.4 Listing 素材
@@ -101,15 +101,15 @@ SafeMarks 用于把浏览器收藏保存在本地加密保险库中。用户可�
 Single purpose 建议填写：
 
 ```text
-Store and manage personal browser bookmarks in a local encrypted vault.
+Store and manage personal browser bookmarks in a local encrypted vault, with optional end-to-end encrypted folder synchronization.
 ```
 
 权限用途建议填写：
 
 | 权限 | 建议说明 |
 | --- | --- |
-| `storage` | Stores the encrypted vault, folder catalog, local settings, and pending quick-capture records on the device. |
-| `alarms` | Auto-locks the vault after the configured timeout. |
+| `storage` | Stores the encrypted vault, folder catalog, local settings, sync state, and pending quick-capture records on the device. |
+| `alarms` | Auto-locks the vault and performs best-effort checks for an enabled sync folder. |
 | `activeTab` | Reads the current tab's title and URL only when the user explicitly saves the current page or starts quick capture. |
 | `contextMenus` | Adds user-triggered right-click menu items for saving pages, links, or selected text into SafeMarks. |
 | `bookmarks` | Optional permission used only when the user explicitly requests browser-bookmark import. |
@@ -120,11 +120,13 @@ Store and manage personal browser bookmarks in a local encrypted vault.
   - 理由：扩展会保存或导入用户明确选择的页面 URL / 标题，这些数据可能反映浏览偏好
 - 不要声称读取 `Website content`
   - 当前实现只读取活动标签页的标题、URL、favicon URL，不抓取页面正文或 DOM
-- 不要声称使用远程服务处理用户数据
-  - 当前实现没有远程同步、广告、分析或后端接口
+- 披露可选的同步文件夹能力
+  - 只有用户主动选择目录后才会启用
+  - 目录中只写入端到端加密修订；云盘服务商仍可看到文件大小、修改时间和随机修订标识
+  - SafeMarks 不运营同步后端，也不接收主密码、会话密钥或明文收藏
 - `Sold to third parties`：`No`
 - `Used for creditworthiness or lending purposes`：`No`
-- `Transferred to third parties`：`No`，除非以后新增远程服务
+- `Transferred to third parties`：按 Chrome Web Store 当前表单定义如实披露“用户主动启用后向其所选云盘目录写入密文”；不要把密文同步描述成明文收藏共享
 
 必须和隐私政策保持一致的点：
 
@@ -132,6 +134,7 @@ Store and manage personal browser bookmarks in a local encrypted vault.
 - 锁定状态下的快速收藏会先本地明文暂存，待下次解锁后导入并清除
 - 主密码不以明文持久化
 - 书签导入只发生在用户主动授权后
+- 同步目录只在用户主动选择后访问，写入内容为加密修订
 
 ### 4.6 Distribution
 
@@ -165,7 +168,7 @@ No account or paid service is required.
 
 ### 5.1 Package
 
-- 上传文件：`dist/safemarks-1.1.0.zip`
+- 上传文件：`dist/safemarks-1.2.0.zip`
 - Edge 会把上传的 ZIP 转成商店分发格式
 
 ### 5.2 Properties / Listing
@@ -215,7 +218,8 @@ No account or paid service is required.
 可在备注或描述里强调：
 
 - No account required
-- No remote server dependency
+- No SafeMarks-operated data server
+- Optional end-to-end encrypted sync through a user-selected folder
 - All core bookmark-vault features work locally
 - Browser-bookmark import requires explicit user action and permission grant
 

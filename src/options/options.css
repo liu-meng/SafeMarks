@@ -150,6 +150,42 @@
   gap: 12px;
 }
 
+.cloud-sync-panel {
+  gap: 14px;
+  border-color: rgba(18, 101, 109, 0.18);
+  background:
+    linear-gradient(135deg, rgba(29, 122, 109, 0.1), rgba(123, 198, 180, 0.05)),
+    var(--card);
+}
+
+.sync-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.sync-summary > div,
+.sync-restore-panel {
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.sync-summary p {
+  margin: 0;
+}
+
+.sync-restore-panel {
+  gap: 10px;
+}
+
+.sync-restore-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+}
+
 .backup-reminder {
   padding: 14px;
   border: 1px solid rgba(29, 122, 109, 0.18);
@@ -232,5 +268,10 @@
   .shortcut-item {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .sync-summary,
+  .sync-restore-form {
+    grid-template-columns: 1fr;
   }
 }

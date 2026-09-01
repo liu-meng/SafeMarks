@@ -50,6 +50,8 @@ const EN_TRANSLATIONS = Object.freeze({
   "首次创建保险库": "Create Your Vault",
   "创建后会立即加密一个空收藏库；常规保存会直接写入密文，锁定状态下的快速收藏会先本地暂存，待解锁后导入保险库。":
     "An empty bookmark vault is encrypted immediately after setup. Regular saves go straight into the encrypted vault, while quick captures created during the locked state are stored locally until the next unlock imports them.",
+  "SafeMarks 使用 AES-256 加密保护您的书签。核心功能无需账号，云同步可选，只有您知道主密码。":
+    "SafeMarks protects your bookmarks with AES-256 encryption. Core features require no account, cloud sync is optional, and only you know the master password.",
   "主密码": "Master Password",
   "确认主密码": "Confirm Master Password",
   "自动锁定": "Auto Lock",
@@ -595,7 +597,84 @@ const EN_TRANSLATIONS = Object.freeze({
   "保留": "Keep",
   "删除": "Delete",
   "关闭": "Close",
-  "已删除 {count} 条重复收藏。": "Deleted {count} duplicate bookmarks."
+  "已删除 {count} 条重复收藏。": "Deleted {count} duplicate bookmarks.",
+  "核心功能只使用本地加密保险库，无需账号；云同步可在设置页选择启用。":
+    "Core features use only the local encrypted vault and require no account. Optional cloud sync can be enabled in Settings.",
+  "先设置主密码，再把浏览器里已有的书签带进来；核心功能无需账号，云同步完全可选。":
+    "Set a master password, then bring in your existing browser bookmarks. Core features require no account, and cloud sync is entirely optional.",
+  "管理本地保险库的自动锁定、浏览器导入、备份恢复和可选的端到端加密云同步。":
+    "Manage auto lock, browser import, backup and restore, and optional end-to-end encrypted cloud sync.",
+  "端到端加密": "End-to-End Encrypted",
+  "iCloud Drive / 同步文件夹": "iCloud Drive / Sync Folder",
+  "选择 iCloud Drive 中的专用 SafeMarks 文件夹。扩展只写入密文修订，Apple 和其他云盘服务商无法读取书签内容。":
+    "Choose a dedicated SafeMarks folder in iCloud Drive. The extension writes encrypted revisions only, so Apple and other cloud providers cannot read bookmark contents.",
+  "未启用": "Not Enabled",
+  "同步目录": "Sync Folder",
+  "尚未选择": "Not selected",
+  "最近同步": "Last Sync",
+  "选择同步文件夹": "Choose Sync Folder",
+  "立即同步": "Sync Now",
+  "重新授权": "Reauthorize",
+  "断开连接": "Disconnect",
+  "建议新建并只授权 `iCloud Drive/SafeMarks`，不要选择整个 iCloud Drive。":
+    "Create and authorize only `iCloud Drive/SafeMarks`; do not select your entire iCloud Drive.",
+  "从同步文件夹恢复": "Restore from Sync Folder",
+  "当前浏览器还没有保险库。输入原主密码，从所选文件夹恢复密文书签。":
+    "This browser has no vault yet. Enter the original master password to restore encrypted bookmarks from the selected folder.",
+  "原主密码": "Original master password",
+  "恢复并解锁": "Restore and Unlock",
+  "已连接": "Connected",
+  "同步中…": "Syncing…",
+  "已同步": "Synced",
+  "等待同步": "Waiting to Sync",
+  "需要重新授权": "Reauthorization Required",
+  "云端主密码已更改": "Remote Master Password Changed",
+  "已同步，有冲突副本": "Synced with Conflict Copies",
+  "同步失败": "Sync Failed",
+  "当前浏览器不支持": "Not Supported by This Browser",
+  "请使用支持 File System Access API 的桌面版 Chrome。":
+    "Use desktop Chrome with File System Access API support.",
+  "已保留 {count} 个同步冲突副本，请在收藏管理中检查。":
+    "Kept {count} sync conflict copies. Review them in Bookmark Manager.",
+  "浏览器需要你重新授权该文件夹后才能继续同步。":
+    "Reauthorize this folder to continue syncing.",
+  "书签先在本地加密，再把密文修订写入所选文件夹。":
+    "Bookmarks are encrypted locally before encrypted revisions are written to the selected folder.",
+  "加密 JSON 仍适合独立归档；可选云同步不会代替用户自行保留的恢复备份，明文导出仍需要当前会话已解锁。":
+    "Encrypted JSON remains useful for independent archives. Optional cloud sync does not replace your own recovery backup, and plain export still requires an unlocked session.",
+  "请定期导出独立的加密 JSON；即使已启用云同步，也应保留可自行恢复的备份。":
+    "Export an independent encrypted JSON regularly. Keep a recovery backup even when cloud sync is enabled.",
+  "选择同步文件夹后，请先解锁保险库再开始同步。":
+    "Unlock the vault after choosing a sync folder to begin syncing.",
+  "同步文件夹已连接，首轮密文同步完成。": "Sync folder connected and the first encrypted sync is complete.",
+  "同步文件夹已连接，请输入原主密码恢复保险库。":
+    "Sync folder connected. Enter the original master password to restore the vault.",
+  "已取消选择同步文件夹。": "Sync folder selection canceled.",
+  "同步前请先解锁保险库。": "Unlock the vault before syncing.",
+  "同步完成，并保留了 {count} 个冲突副本。":
+    "Sync complete with {count} conflict copies preserved.",
+  "云同步已完成。": "Cloud sync complete.",
+  "同步文件夹权限已恢复。": "Sync folder permission restored.",
+  "断开同步文件夹？": "Disconnect the sync folder?",
+  "只会断开当前浏览器的授权，不会删除本地保险库或文件夹中的加密修订。":
+    "This only disconnects authorization in this browser. It does not delete the local vault or encrypted folder revisions.",
+  "已断开同步文件夹，本地保险库保持不变。":
+    "Sync folder disconnected. The local vault is unchanged.",
+  "请输入原主密码。": "Enter the original master password.",
+  "保险库已恢复，并保留了 {count} 个冲突副本。":
+    "Vault restored with {count} conflict copies preserved.",
+  "保险库已从同步文件夹恢复并解锁。": "Vault restored from the sync folder and unlocked.",
+  "使用新主密码恢复云端版本": "Restore Remote Version with the New Master Password",
+  "另一台设备修改了主密码。恢复前会先下载当前本地加密备份，再用新主密码载入云端版本。":
+    "Another device changed the master password. SafeMarks downloads the current local encrypted backup before loading the remote version with the new password.",
+  "新增 macOS iCloud Drive 与本地云盘同步文件夹":
+    "Added macOS iCloud Drive and local cloud-drive sync folders",
+  "同步修订保持端到端加密，云盘服务商无法读取书签内容":
+    "Kept sync revisions end-to-end encrypted so cloud providers cannot read bookmark contents",
+  "新增保险库 V2、删除墓碑与多端三方合并":
+    "Added Vault V2, deletion tombstones, and three-way multi-device merging",
+  "支持从同步文件夹恢复保险库，并在并发编辑时保留冲突副本":
+    "Added vault restore from sync folders and conflict copies for concurrent edits"
 });
 
 const JA_TRANSLATIONS = Object.freeze({
@@ -695,7 +774,15 @@ const JA_TRANSLATIONS = Object.freeze({
   "性能与稳定性优化": "パフォーマンスと安定性の改善",
   "设置页重构为双栏网格布局": "設定ページを2カラムのグリッドレイアウトに再構成",
   "新增关闭浏览器时自动锁定选项": "ブラウザー終了時に自動ロックするオプションを追加",
-  "新增修改主密码功能": "マスターパスワード変更機能を追加"
+  "新增修改主密码功能": "マスターパスワード変更機能を追加",
+  "新增 macOS iCloud Drive 与本地云盘同步文件夹":
+    "macOS iCloud Drive とローカルクラウドドライブの同期フォルダーを追加",
+  "同步修订保持端到端加密，云盘服务商无法读取书签内容":
+    "同期リビジョンをエンドツーエンド暗号化し、クラウド事業者がブックマーク内容を読めないように改善",
+  "新增保险库 V2、删除墓碑与多端三方合并":
+    "Vault V2、削除トゥームストーン、複数端末の3方向マージを追加",
+  "支持从同步文件夹恢复保险库，并在并发编辑时保留冲突副本":
+    "同期フォルダーからの復元と同時編集時の競合コピー保持に対応"
 });
 
 const TRANSLATIONS_BY_LOCALE = Object.freeze({

@@ -27,14 +27,14 @@ async function importPasswordKey(password) {
   );
 }
 
-export async function deriveKeyFromPassword(password, saltBytes) {
+export async function deriveKeyFromPassword(password, saltBytes, iterations = 100000) {
   const passwordKey = await importPasswordKey(password);
   return requireCrypto().subtle.deriveKey(
     {
       name: "PBKDF2",
       hash: "SHA-256",
       salt: saltBytes,
-      iterations: 100000
+      iterations
     },
     passwordKey,
     {
@@ -63,12 +63,23 @@ export async function importKey(encodedKey) {
   );
 }
 
-async function encryptBytes(bytes, key) {
+function normalizeAdditionalData(additionalData) {
+  if (additionalData === undefined || additionalData === null) {
+    return undefined;
+  }
+
+  return typeof additionalData === "string"
+    ? encoder.encode(additionalData)
+    : additionalData;
+}
+
+async function encryptBytes(bytes, key, additionalData) {
   const iv = randomBytes(12);
   const ciphertext = await requireCrypto().subtle.encrypt(
     {
       name: "AES-GCM",
-      iv
+      iv,
+      additionalData: normalizeAdditionalData(additionalData)
     },
     key,
     bytes
@@ -80,11 +91,12 @@ async function encryptBytes(bytes, key) {
   };
 }
 
-async function decryptBytes(blob, key) {
+async function decryptBytes(blob, key, additionalData) {
   const plaintext = await requireCrypto().subtle.decrypt(
     {
       name: "AES-GCM",
-      iv: base64ToBytes(blob.iv)
+      iv: base64ToBytes(blob.iv),
+      additionalData: normalizeAdditionalData(additionalData)
     },
     key,
     base64ToBytes(blob.ciphertext)
@@ -93,20 +105,20 @@ async function decryptBytes(blob, key) {
   return new Uint8Array(plaintext);
 }
 
-export async function encryptString(value, key) {
-  return encryptBytes(encoder.encode(value), key);
+export async function encryptString(value, key, additionalData) {
+  return encryptBytes(encoder.encode(value), key, additionalData);
 }
 
-export async function decryptString(blob, key) {
-  const bytes = await decryptBytes(blob, key);
+export async function decryptString(blob, key, additionalData) {
+  const bytes = await decryptBytes(blob, key, additionalData);
   return decoder.decode(bytes);
 }
 
-export async function encryptJson(value, key) {
-  return encryptString(JSON.stringify(value), key);
+export async function encryptJson(value, key, additionalData) {
+  return encryptString(JSON.stringify(value), key, additionalData);
 }
 
-export async function decryptJson(blob, key) {
-  const plaintext = await decryptString(blob, key);
+export async function decryptJson(blob, key, additionalData) {
+  const plaintext = await decryptString(blob, key, additionalData);
   return JSON.parse(plaintext);
 }

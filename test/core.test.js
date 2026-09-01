@@ -4,13 +4,28 @@ import { readFileSync } from "node:fs";
 
 import { base64ToBytes, bytesToBase64 } from "../src/core/base64.js";
 import {
+  deriveKeyFromPassword,
+  encryptJson,
+  encryptString,
+  exportKey,
+  randomBytes
+} from "../src/core/crypto.js";
+import { AUTH_SENTINEL } from "../src/core/constants.js";
+import {
   changeVaultPassword,
   decryptBookmarksWithEncodedKey,
+  decryptVaultPayloadWithEncodedKey,
   encryptBookmarksWithEncodedKey,
   unlockVaultRecord,
   createBookmark,
   createVaultRecord
 } from "../src/core/vault.js";
+import { findRevisionHeadIds, mergeVaultPayloads } from "../src/core/sync-merge.js";
+import {
+  restoreVaultFromLocalFolder,
+  syncLocalFolderNow
+} from "../src/core/sync-coordinator.js";
+import { loadSyncState, saveSyncState } from "../src/core/sync-storage.js";
 import { getBookmarkSearchResults } from "../src/core/bookmark-search.js";
 import {
   BACKUP_REMINDER_INTERVAL_MS,
@@ -37,6 +52,7 @@ import {
   loadBackupReminderState,
   loadFolderCatalog,
   loadPendingQuickCaptures,
+  loadVaultRecord,
   saveBackupReminderState,
   savePendingQuickCaptures,
   saveVaultRecord
@@ -87,6 +103,9 @@ test("options page exposes script-required shortcut controls", () => {
   assert.match(html, /id="backup-reminder"/);
   assert.match(html, /id="backup-reminder-export"/);
   assert.match(html, /id="backup-reminder-dismiss"/);
+  assert.match(html, /id="cloud-sync-connect"/);
+  assert.match(html, /id="cloud-sync-now"/);
+  assert.match(html, /id="cloud-sync-restore-form"/);
   assert.doesNotMatch(html, /(?:id|class|type|aria-live)=["“”][^"]*[“”]/);
 });
 
@@ -166,7 +185,9 @@ test("vault can be created and unlocked with the same password", async () => {
   const created = await createVaultRecord("super-secret", 15);
   const unlocked = await unlockVaultRecord(created.record, "super-secret");
 
-  assert.equal(unlocked.record.version, 1);
+  assert.equal(unlocked.record.version, 2);
+  assert.match(unlocked.record.vaultId, /^vault_/);
+  assert.ok(unlocked.record.kdf.iterations >= 100000);
   assert.equal(unlocked.record.meta.bookmarkCount, 0);
   assert.equal(unlocked.bookmarks.length, 0);
   assert.ok(unlocked.encodedKey.length > 10);
@@ -420,11 +441,93 @@ test("bookmark validation keeps legacy items compatible without folder path", as
   assert.equal(bookmarks[0].folderPath, "");
 });
 
+test("vault V2 tracks edits and deletion tombstones inside ciphertext", async () => {
+  const created = await createVaultRecord("vault-pass", 15);
+  const first = createBookmark({
+    title: "First",
+    url: "https://example.com/first",
+    createdAt: 1710000000000
+  });
+  const second = createBookmark({
+    title: "Second",
+    url: "https://example.com/second",
+    createdAt: 1710000000001
+  });
+  const populated = await encryptBookmarksWithEncodedKey(
+    created.record,
+    [first, second],
+    created.encodedKey
+  );
+  const updated = await encryptBookmarksWithEncodedKey(
+    populated,
+    [{ ...first, title: "First updated" }],
+    created.encodedKey
+  );
+  const payload = await decryptVaultPayloadWithEncodedKey(updated, created.encodedKey);
+
+  assert.equal(payload.schemaVersion, 2);
+  assert.equal(payload.bookmarks.length, 1);
+  assert.equal(payload.bookmarks[0].title, "First updated");
+  assert.ok(payload.bookmarks[0].updatedAt >= first.updatedAt);
+  assert.deepEqual(payload.tombstones.map((item) => item.id), [second.id]);
+  assert.doesNotMatch(updated.vault.ciphertext, /First updated|example\.com/);
+});
+
+test("three-way sync merge preserves independent edits and creates conflict copies", () => {
+  const baseBookmark = {
+    id: "bm_shared",
+    title: "Base",
+    url: "https://example.com",
+    note: "",
+    folderPath: "",
+    tags: [],
+    createdAt: 1710000000000,
+    updatedAt: 1710000000000
+  };
+  const addedLocal = { ...baseBookmark, id: "bm_local", title: "Local", updatedAt: 1710000000001 };
+  const addedRemote = { ...baseBookmark, id: "bm_remote", title: "Remote", updatedAt: 1710000000002 };
+  const merged = mergeVaultPayloads({
+    base: { schemaVersion: 2, bookmarks: [baseBookmark], tombstones: [] },
+    local: {
+      schemaVersion: 2,
+      bookmarks: [{ ...baseBookmark, title: "Local edit", updatedAt: 1710000000010 }, addedLocal],
+      tombstones: []
+    },
+    remote: {
+      schemaVersion: 2,
+      bookmarks: [{ ...baseBookmark, title: "Remote edit", updatedAt: 1710000000020 }, addedRemote],
+      tombstones: []
+    },
+    createId: () => "bm_conflict"
+  });
+
+  assert.equal(merged.conflicts.length, 1);
+  assert.deepEqual(
+    merged.payload.bookmarks.map((bookmark) => bookmark.id).sort(),
+    ["bm_conflict", "bm_local", "bm_remote", "bm_shared"]
+  );
+  assert.equal(
+    merged.payload.bookmarks.find((bookmark) => bookmark.id === "bm_conflict").title,
+    "Remote edit（同步冲突副本）"
+  );
+});
+
+test("revision head detection supports divergent and merged histories", () => {
+  const revisions = [
+    { revisionId: "a", parentRevisionIds: [] },
+    { revisionId: "b", parentRevisionIds: ["a"] },
+    { revisionId: "c", parentRevisionIds: ["a"] }
+  ];
+  assert.deepEqual(findRevisionHeadIds(revisions).sort(), ["b", "c"]);
+  revisions.push({ revisionId: "d", parentRevisionIds: ["b", "c"] });
+  assert.deepEqual(findRevisionHeadIds(revisions), ["d"]);
+});
+
 test("vault validation rejects unsupported version", () => {
   assert.throws(
     () =>
       normalizeVaultRecord({
-        version: 2,
+        version: 3,
         salt: "abc",
         auth: { iv: "a", ciphertext: "b" },
         vault: { iv: "c", ciphertext: "d" },
@@ -444,6 +547,39 @@ test("vault validation accepts legacy records without bookmark count metadata", 
   });
 
   assert.equal(normalized.meta.bookmarkCount, null);
+});
+
+test("legacy V1 vault unlocks and migrates to V2 on the next encrypted write", async () => {
+  const saltBytes = randomBytes(16);
+  const key = await deriveKeyFromPassword("legacy-pass", saltBytes, 100000);
+  const legacyBookmark = {
+    id: "bm_legacy",
+    title: "Legacy",
+    url: "https://example.com/legacy",
+    note: "",
+    folderPath: "",
+    tags: [],
+    createdAt: 1710000000000
+  };
+  const legacyRecord = {
+    version: 1,
+    salt: bytesToBase64(saltBytes),
+    auth: await encryptString(AUTH_SENTINEL, key),
+    vault: await encryptJson([legacyBookmark], key),
+    settings: { autoLockMinutes: 15, passwordHint: "" },
+    meta: { bookmarkCount: 1 }
+  };
+  const unlocked = await unlockVaultRecord(legacyRecord, "legacy-pass");
+  const migrated = await encryptBookmarksWithEncodedKey(
+    legacyRecord,
+    unlocked.bookmarks,
+    await exportKey(key)
+  );
+
+  assert.equal(unlocked.bookmarks[0].updatedAt, legacyBookmark.createdAt);
+  assert.equal(migrated.version, 2);
+  assert.match(migrated.vaultId, /^vault_/);
+  assert.equal((await decryptBookmarksWithEncodedKey(migrated, unlocked.encodedKey)).length, 1);
 });
 
 test("auto-lock supports 1 minute and falls back to the new 15 minute default", () => {
@@ -997,9 +1133,9 @@ test("restore preflight validates encrypted vault metadata", async () => {
     hasExistingVault: true
   });
 
-  assert.equal(preflight.record.version, 1);
+  assert.equal(preflight.record.version, 2);
   assert.equal(preflight.hasExistingVault, true);
-  assert.equal(preflight.version, 1);
+  assert.equal(preflight.version, 2);
   assert.equal(preflight.bookmarkCount, 0);
   assert.equal(preflight.autoLockMinutes, 0);
   assert.equal(preflight.hasPasswordHint, true);
@@ -1324,4 +1460,151 @@ test("vault password change generates new salt", async () => {
   const changed = await changeVaultPassword(created.record, "old-pass", "new-pass");
 
   assert.notEqual(changed.record.salt, created.record.salt);
+});
+
+test("folder sync writes an encrypted revision and restores it on another device", async () => {
+  const originalChrome = globalThis.chrome;
+  const remoteRevisions = [];
+  const provider = {
+    async listRevisions() {
+      return remoteRevisions;
+    },
+    async writeRevision(revision) {
+      const index = remoteRevisions.findIndex((item) => item.revisionId === revision.revisionId);
+      if (index >= 0) remoteRevisions[index] = revision;
+      else remoteRevisions.push(revision);
+    },
+    async writeManifest() {}
+  };
+
+  try {
+    const firstDevice = createChromeStorageMock();
+    globalThis.chrome = firstDevice.chrome;
+    const created = await createVaultRecord("sync-pass", 15);
+    const bookmark = createBookmark({
+      title: "Synced page",
+      url: "https://example.com/synced"
+    });
+    const populated = await encryptBookmarksWithEncodedKey(
+      created.record,
+      [bookmark],
+      created.encodedKey
+    );
+    await saveVaultRecord(populated);
+    await saveSyncState({
+      enabled: true,
+      provider: "local-folder",
+      directoryName: "SafeMarks",
+      status: "ready"
+    });
+
+    await syncLocalFolderNow({ encodedKey: created.encodedKey, provider });
+    assert.equal(remoteRevisions.length, 1);
+    assert.doesNotMatch(JSON.stringify(remoteRevisions), /Synced page|example\.com\/synced/);
+
+    const changedPassword = await changeVaultPassword(populated, "sync-pass", "new-sync-pass");
+    await saveVaultRecord(changedPassword.record);
+    await syncLocalFolderNow({ encodedKey: changedPassword.encodedKey, provider });
+    assert.equal(remoteRevisions.length, 2);
+
+    const secondDevice = createChromeStorageMock();
+    globalThis.chrome = secondDevice.chrome;
+    const restored = await restoreVaultFromLocalFolder({ password: "new-sync-pass", provider });
+    const bookmarks = await decryptBookmarksWithEncodedKey(restored.record, restored.encodedKey);
+
+    assert.equal(bookmarks.length, 1);
+    assert.equal(bookmarks[0].title, "Synced page");
+  } finally {
+    globalThis.chrome = originalChrome;
+  }
+});
+
+test("two devices preserve independent offline additions and converge to one head", async () => {
+  const originalChrome = globalThis.chrome;
+  const remoteRevisions = [];
+  const provider = {
+    async listRevisions() {
+      return remoteRevisions;
+    },
+    async writeRevision(revision) {
+      remoteRevisions.push(revision);
+    },
+    async writeManifest() {}
+  };
+  const deviceOne = createChromeStorageMock();
+  const deviceTwo = createChromeStorageMock();
+
+  try {
+    globalThis.chrome = deviceOne.chrome;
+    const created = await createVaultRecord("shared-pass", 15);
+    await saveVaultRecord(created.record);
+    await saveSyncState({ enabled: true, provider: "local-folder", status: "ready" });
+    await syncLocalFolderNow({ encodedKey: created.encodedKey, provider });
+
+    globalThis.chrome = deviceTwo.chrome;
+    const restored = await restoreVaultFromLocalFolder({ password: "shared-pass", provider });
+
+    globalThis.chrome = deviceOne.chrome;
+    let record = await loadVaultRecord();
+    record = await encryptBookmarksWithEncodedKey(record, [
+      createBookmark({ title: "From Mac One", url: "https://example.com/mac-one" })
+    ], created.encodedKey);
+    await saveVaultRecord(record);
+    await syncLocalFolderNow({ encodedKey: created.encodedKey, provider });
+
+    globalThis.chrome = deviceTwo.chrome;
+    record = await loadVaultRecord();
+    record = await encryptBookmarksWithEncodedKey(record, [
+      createBookmark({ title: "From Mac Two", url: "https://example.com/mac-two" })
+    ], restored.encodedKey);
+    await saveVaultRecord(record);
+    await syncLocalFolderNow({ encodedKey: restored.encodedKey, provider });
+
+    const converged = await decryptBookmarksWithEncodedKey(await loadVaultRecord(), restored.encodedKey);
+    assert.deepEqual(
+      converged.map((bookmark) => bookmark.title).sort(),
+      ["From Mac One", "From Mac Two"]
+    );
+    assert.equal(findRevisionHeadIds(remoteRevisions).length, 1);
+  } finally {
+    globalThis.chrome = originalChrome;
+  }
+});
+
+test("an old device detects a master-password change without overwriting remote data", async () => {
+  const originalChrome = globalThis.chrome;
+  const remoteRevisions = [];
+  const provider = {
+    async listRevisions() { return remoteRevisions; },
+    async writeRevision(revision) { remoteRevisions.push(revision); },
+    async writeManifest() {}
+  };
+  const deviceOne = createChromeStorageMock();
+  const deviceTwo = createChromeStorageMock();
+
+  try {
+    globalThis.chrome = deviceOne.chrome;
+    const created = await createVaultRecord("old-pass", 15);
+    await saveVaultRecord(created.record);
+    await saveSyncState({ enabled: true, provider: "local-folder", status: "ready" });
+    await syncLocalFolderNow({ encodedKey: created.encodedKey, provider });
+
+    globalThis.chrome = deviceTwo.chrome;
+    const restored = await restoreVaultFromLocalFolder({ password: "old-pass", provider });
+
+    globalThis.chrome = deviceOne.chrome;
+    const changed = await changeVaultPassword(await loadVaultRecord(), "old-pass", "new-pass");
+    await saveVaultRecord(changed.record);
+    await syncLocalFolderNow({ encodedKey: changed.encodedKey, provider });
+
+    globalThis.chrome = deviceTwo.chrome;
+    await assert.rejects(
+      () => syncLocalFolderNow({ encodedKey: restored.encodedKey, provider }),
+      /主密码已更改/
+    );
+    assert.equal((await loadSyncState()).status, "remote-password-changed");
+    assert.equal(findRevisionHeadIds(remoteRevisions).length, 1);
+  } finally {
+    globalThis.chrome = originalChrome;
+  }
 });

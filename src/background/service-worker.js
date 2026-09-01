@@ -1,4 +1,9 @@
-import { AUTO_LOCK_ALARM } from "../core/constants.js";
+import {
+  AUTO_LOCK_ALARM,
+  SYNC_ALARM,
+  SYNC_ALARM_PERIOD_MINUTES,
+  SYNC_DEBOUNCE_ALARM
+} from "../core/constants.js";
 import {
   createBookmark,
   decryptBookmarksWithEncodedKey,
@@ -20,6 +25,10 @@ import {
   loadVaultRecord
 } from "../core/storage.js";
 import { initializeI18n, t } from "../shared/i18n.js";
+import {
+  markFolderSyncDirty,
+  syncLocalFolderNow
+} from "../core/sync-coordinator.js";
 
 const COMMANDS = {
   QUICK_CAPTURE: "quick-capture",
@@ -66,11 +75,39 @@ async function handleSessionSet(message) {
 
   await writeSessionRecord(session);
   await scheduleAutoLock(session.expiresAt);
+  await scheduleSyncCheck();
 
   return {
     status: "unlocked",
     session
   };
+}
+
+async function scheduleSyncCheck({ delayInMinutes = 0.5 } = {}) {
+  await chrome.alarms.create(SYNC_DEBOUNCE_ALARM, { delayInMinutes });
+}
+
+async function ensurePeriodicSyncAlarm() {
+  const existing = await chrome.alarms.get(SYNC_ALARM);
+  if (!existing) {
+    await chrome.alarms.create(SYNC_ALARM, {
+      delayInMinutes: SYNC_ALARM_PERIOD_MINUTES,
+      periodInMinutes: SYNC_ALARM_PERIOD_MINUTES
+    });
+  }
+}
+
+async function runBackgroundSync() {
+  const session = await readSessionRecord();
+  if (!session || isSessionExpired(session)) {
+    return;
+  }
+  try {
+    await syncLocalFolderNow({ encodedKey: session.encodedKey });
+  } catch {
+    // The coordinator persists a user-visible error. Background retries must
+    // never interrupt bookmark saves or create unhandled worker rejections.
+  }
 }
 
 async function handleSessionTouch() {
@@ -233,6 +270,11 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 });
 
 chrome.alarms.onAlarm.addListener(async (alarm) => {
+  if (alarm.name === SYNC_ALARM || alarm.name === SYNC_DEBOUNCE_ALARM) {
+    await runBackgroundSync();
+    return;
+  }
+
   if (alarm.name !== AUTO_LOCK_ALARM) {
     return;
   }
@@ -267,6 +309,7 @@ chrome.commands.onCommand.addListener(async (command) => {
 chrome.runtime.onInstalled.addListener((details) => {
   refreshActionBadge().catch(() => {});
   setupContextMenus();
+  ensurePeriodicSyncAlarm().catch(() => {});
 
   if (details.reason === "install") {
     chrome.tabs.create({ url: PAGE_URLS.onboarding }).catch(() => {});
@@ -280,9 +323,25 @@ chrome.runtime.onInstalled.addListener((details) => {
 chrome.runtime.onStartup.addListener(() => {
   refreshActionBadge().catch(() => {});
   setupContextMenus();
+  ensurePeriodicSyncAlarm().catch(() => {});
 });
 
 refreshActionBadge().catch(() => {});
+ensurePeriodicSyncAlarm().catch(() => {});
+
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName !== "local" || !changes.vault) {
+    return;
+  }
+  markFolderSyncDirty()
+    .then((state) => {
+      if (state.enabled && state.provider === "local-folder") {
+        return scheduleSyncCheck();
+      }
+      return undefined;
+    })
+    .catch(() => {});
+});
 
 async function setupContextMenus() {
   await ensureI18n();

@@ -41,6 +41,14 @@ import {
 } from "../shared/i18n.js";
 import { createPasswordStrengthMeter } from "../shared/password-strength-meter.js";
 import { confirmDialog, showMessage } from "../shared/ui.js";
+import {
+  connectLocalFolderSync,
+  disconnectLocalFolderSync,
+  getLocalFolderSyncOverview,
+  requestStoredFolderPermission,
+  restoreVaultFromLocalFolder,
+  syncLocalFolderNow
+} from "../core/sync-coordinator.js";
 
 const MANAGER_PAGE_URL = chrome.runtime.getURL("src/manager/index.html");
 const SHORTCUT_SETTINGS_URL = "chrome://extensions/shortcuts";
@@ -109,6 +117,21 @@ const elements = {
   optionsHero: document.querySelector("#options-hero"),
   openManager: document.querySelector("#open-manager"),
   message: document.querySelector("#options-message"),
+  cloudSyncPanel: document.querySelector("#cloud-sync-panel"),
+  cloudSyncStatus: document.querySelector("#cloud-sync-status"),
+  cloudSyncDirectory: document.querySelector("#cloud-sync-directory"),
+  cloudSyncLastRun: document.querySelector("#cloud-sync-last-run"),
+  cloudSyncConnect: document.querySelector("#cloud-sync-connect"),
+  cloudSyncNow: document.querySelector("#cloud-sync-now"),
+  cloudSyncReauthorize: document.querySelector("#cloud-sync-reauthorize"),
+  cloudSyncDisconnect: document.querySelector("#cloud-sync-disconnect"),
+  cloudSyncDetail: document.querySelector("#cloud-sync-detail"),
+  cloudSyncRestorePanel: document.querySelector("#cloud-sync-restore-panel"),
+  cloudSyncRestoreTitle: document.querySelector("#cloud-sync-restore-title"),
+  cloudSyncRestoreCopy: document.querySelector("#cloud-sync-restore-copy"),
+  cloudSyncRestoreForm: document.querySelector("#cloud-sync-restore-form"),
+  cloudSyncRestorePassword: document.querySelector("#cloud-sync-restore-password"),
+  cloudSyncRestoreSubmit: document.querySelector("#cloud-sync-restore-submit"),
   vaultStatus: document.querySelector("#vault-status"),
   sessionStatus: document.querySelector("#session-status"),
   lockSession: document.querySelector("#lock-session"),
@@ -173,6 +196,68 @@ const state = {
   welcomeImportSkipped: false,
   backupReminderState: null
 };
+
+function formatSyncStatus(status) {
+  const labels = {
+    off: t("未启用"),
+    ready: t("已连接"),
+    syncing: t("同步中…"),
+    synced: t("已同步"),
+    "local-dirty": t("等待同步"),
+    "folder-permission": t("需要重新授权"),
+    "remote-password-changed": t("云端主密码已更改"),
+    "conflict-copies": t("已同步，有冲突副本"),
+    error: t("同步失败")
+  };
+  return labels[status] ?? t("未启用");
+}
+
+async function refreshCloudSyncPanel() {
+  if (!("showDirectoryPicker" in window)) {
+    elements.cloudSyncConnect.disabled = true;
+    elements.cloudSyncStatus.textContent = t("当前浏览器不支持");
+    elements.cloudSyncDetail.textContent = t("请使用支持 File System Access API 的桌面版 Chrome。");
+    return;
+  }
+
+  const { state: syncState, folder } = await getLocalFolderSyncOverview();
+  const connected = syncState.enabled && folder.connected;
+  elements.cloudSyncStatus.textContent = formatSyncStatus(connected ? syncState.status : "off");
+  elements.cloudSyncDirectory.textContent = connected
+    ? folder.directoryName || syncState.directoryName
+    : t("尚未选择");
+  elements.cloudSyncLastRun.textContent = syncState.lastSyncedAt
+    ? formatDateTime(syncState.lastSyncedAt)
+    : t("暂无记录");
+  elements.cloudSyncConnect.hidden = connected;
+  elements.cloudSyncDisconnect.hidden = !connected;
+  elements.cloudSyncReauthorize.hidden = !connected || folder.permission === "granted";
+  elements.cloudSyncNow.disabled = !connected
+    || folder.permission !== "granted"
+    || !state.hasVault
+    || state.sessionState !== "unlocked"
+    || syncState.status === "syncing";
+  const needsPasswordRestore = syncState.status === "remote-password-changed";
+  elements.cloudSyncRestorePanel.hidden = !connected || (state.hasVault && !needsPasswordRestore);
+  elements.cloudSyncRestoreTitle.textContent = needsPasswordRestore
+    ? t("使用新主密码恢复云端版本")
+    : t("从同步文件夹恢复");
+  elements.cloudSyncRestoreCopy.textContent = needsPasswordRestore
+    ? t("另一台设备修改了主密码。恢复前会先下载当前本地加密备份，再用新主密码载入云端版本。")
+    : t("当前浏览器还没有保险库。输入原主密码，从所选文件夹恢复密文书签。");
+
+  if (syncState.lastError) {
+    elements.cloudSyncDetail.textContent = syncState.lastError;
+  } else if (syncState.conflictCount > 0) {
+    elements.cloudSyncDetail.textContent = t("已保留 {count} 个同步冲突副本，请在收藏管理中检查。", {
+      count: syncState.conflictCount
+    });
+  } else if (connected && folder.permission !== "granted") {
+    elements.cloudSyncDetail.textContent = t("浏览器需要你重新授权该文件夹后才能继续同步。");
+  } else {
+    elements.cloudSyncDetail.textContent = t("书签先在本地加密，再把密文修订写入所选文件夹。");
+  }
+}
 
 function parseFlowMode() {
   return new URLSearchParams(window.location.search).get("flow") === FLOW_MODES.WELCOME
@@ -244,7 +329,7 @@ function renderWelcomePanel(record) {
         : t("先设置主密码");
     elements.welcomeDescription.textContent =
       state.flowMode === FLOW_MODES.WELCOME
-        ? t("先设置主密码，再把浏览器里已有的书签带进来；SafeMarks 不需要账号，也不提供云同步。")
+        ? t("先设置主密码，再把浏览器里已有的书签带进来；核心功能无需账号，云同步完全可选。")
         : t("设置好主密码后，就能在当前页导入浏览器书签或恢复加密备份。");
     elements.welcomeStepBadge.textContent = t("第 1 步 / 3");
     return;
@@ -366,7 +451,7 @@ async function renderBackupReminder(record) {
       days: BACKUP_REMINDER_INTERVAL_DAYS
     });
   elements.backupReminderCopy.textContent =
-    t("SafeMarks 只保存本地密文。请定期导出加密 JSON，避免浏览器数据丢失后无法恢复。");
+    t("请定期导出独立的加密 JSON；即使已启用云同步，也应保留可自行恢复的备份。");
 }
 
 async function refreshQuickCaptureBadge() {
@@ -658,6 +743,7 @@ async function refreshView(message = "") {
 
   renderWelcomePanel(record);
   await renderBackupReminder(record);
+  await refreshCloudSyncPanel();
 
   if (message) {
     setMessage(
@@ -668,6 +754,107 @@ async function refreshView(message = "") {
     );
   } else if (importedCount > 0) {
     setMessage(formatQuickCaptureImportMessage(importedCount), "success");
+  }
+}
+
+async function handleCloudSyncConnect() {
+  try {
+    const handle = await window.showDirectoryPicker({
+      id: "safemarks-cloud-sync",
+      mode: "readwrite",
+      startIn: "documents"
+    });
+    await connectLocalFolderSync(handle);
+    if (state.hasVault) {
+      const session = await requireUnlockedSession(t("选择同步文件夹后，请先解锁保险库再开始同步。"));
+      await syncLocalFolderNow({ encodedKey: session.encodedKey });
+      await refreshView(t("同步文件夹已连接，首轮密文同步完成。"));
+    } else {
+      await refreshView(t("同步文件夹已连接，请输入原主密码恢复保险库。"));
+      elements.cloudSyncRestorePassword.focus();
+    }
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      setMessage(t("已取消选择同步文件夹。"), "info");
+      return;
+    }
+    setMessage(error instanceof Error ? error.message : String(error), "error");
+    await refreshCloudSyncPanel();
+  }
+}
+
+async function handleCloudSyncNow() {
+  try {
+    elements.cloudSyncNow.disabled = true;
+    const session = await requireUnlockedSession(t("同步前请先解锁保险库。"));
+    const result = await syncLocalFolderNow({ encodedKey: session.encodedKey });
+    await refreshView(
+      result.conflictCount > 0
+        ? t("同步完成，并保留了 {count} 个冲突副本。", { count: result.conflictCount })
+        : t("云同步已完成。")
+    );
+  } catch (error) {
+    setMessage(error instanceof Error ? error.message : String(error), "error");
+    await refreshCloudSyncPanel();
+  }
+}
+
+async function handleCloudSyncReauthorize() {
+  try {
+    await requestStoredFolderPermission();
+    await refreshView(t("同步文件夹权限已恢复。"));
+  } catch (error) {
+    setMessage(error instanceof Error ? error.message : String(error), "error");
+    await refreshCloudSyncPanel();
+  }
+}
+
+async function handleCloudSyncDisconnect() {
+  const confirmed = await confirmDialog({
+    title: t("断开同步文件夹？"),
+    body: t("只会断开当前浏览器的授权，不会删除本地保险库或文件夹中的加密修订。"),
+    confirmLabel: t("断开连接"),
+    tone: "danger"
+  });
+  if (!confirmed) {
+    return;
+  }
+  try {
+    await disconnectLocalFolderSync();
+    await refreshView(t("已断开同步文件夹，本地保险库保持不变。"));
+  } catch (error) {
+    setMessage(error instanceof Error ? error.message : String(error), "error");
+  }
+}
+
+async function handleCloudSyncRestore(event) {
+  event.preventDefault();
+  const password = elements.cloudSyncRestorePassword.value;
+  if (!password) {
+    setMessage(t("请输入原主密码。"), "error");
+    return;
+  }
+  try {
+    elements.cloudSyncRestoreSubmit.disabled = true;
+    const existingRecord = await loadVaultRecord();
+    if (existingRecord) {
+      downloadJson(`safemarks-before-cloud-restore-${Date.now()}.json`, existingRecord);
+    }
+    const restored = await restoreVaultFromLocalFolder({ password });
+    await sessionSet(restored.encodedKey, restored.record.settings.autoLockMinutes);
+    elements.cloudSyncRestoreForm.reset();
+    await syncFolderCatalogFromBookmarks(
+      await decryptBookmarksWithEncodedKey(restored.record, restored.encodedKey)
+    );
+    await refreshView(
+      restored.conflicts.length > 0
+        ? t("保险库已恢复，并保留了 {count} 个冲突副本。", { count: restored.conflicts.length })
+        : t("保险库已从同步文件夹恢复并解锁。")
+    );
+  } catch (error) {
+    setMessage(error instanceof Error ? error.message : String(error), "error");
+  } finally {
+    elements.cloudSyncRestoreSubmit.disabled = false;
   }
 }
 
@@ -1146,6 +1333,15 @@ elements.saveLanguage.addEventListener("click", () => {
   });
 });
 elements.saveSettings.addEventListener("click", handleSaveSettings);
+elements.cloudSyncConnect.addEventListener("click", handleCloudSyncConnect);
+elements.cloudSyncNow.addEventListener("click", handleCloudSyncNow);
+elements.cloudSyncReauthorize.addEventListener("click", handleCloudSyncReauthorize);
+elements.cloudSyncDisconnect.addEventListener("click", () => {
+  handleCloudSyncDisconnect().catch((error) => {
+    setMessage(error instanceof Error ? error.message : String(error), "error");
+  });
+});
+elements.cloudSyncRestoreForm.addEventListener("submit", handleCloudSyncRestore);
 elements.exportEncrypted.addEventListener("click", handleExportEncrypted);
 elements.backupReminderExport.addEventListener("click", handleExportEncrypted);
 elements.backupReminderDismiss.addEventListener("click", handleBackupReminderDismiss);
